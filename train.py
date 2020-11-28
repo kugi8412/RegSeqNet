@@ -104,6 +104,8 @@ parser.add_argument('--model', action='store', metavar='NAME', type=str, default
                          'if NAMESPACE is given model is supposed to be in [PATH]/results/[NAMESPACE]/ directory')
 parser.add_argument('--constant_class', action='store', metavar='CLASS', type=str, default=None,
                     help='If all sequences from the given dataset should belong to given class')
+parser.add_argument('--dropout', action='store', metavar='FLOAT', type=float, default=None,
+                    help='Dropout for training (available only for Custom network), default value is 0.5')
 args = parser.parse_args()
 
 batch_size, num_workers, num_epochs, acc_threshold, seq_len = args.batch_size, args.num_workers, args.num_epochs, \
@@ -158,15 +160,6 @@ logger.info('\nAnalysis {} begins {}\nInput data: {}\nOutput directory: {}\n'.fo
     namespace, datetime.now().strftime("%d/%m/%Y %H:%M:%S"), '; '.join(data_dir), output))
 
 t0 = time()
-if not (args.train is not None or args.valid is not None or args.test is not None):
-    train_num, valid_num, test_num = divide_chr(args.train_chr, args.valid_chr, args.test_chr)
-    if set(train_num) & set(valid_num):
-        logger.warning('WARNING - Chromosomes for training and validation overlap!')
-    elif set(train_num) & set(test_num):
-        logger.warning('WARNING - Chromosomes for training and testing overlap!')
-    elif set(valid_num) & set(test_num):
-        logger.warning('WARNING - Chromosomes for validation and testing overlap!')
-
 # CUDA for PyTorch
 use_cuda, device = check_cuda(logger)
 
@@ -253,6 +246,9 @@ if modelfile is not None:
     t0 = time()
     model.load_state_dict(torch.load(modelfile, map_location=torch.device(device)))
     logger.info('\nModel from {} loaded in {:.2f} s'.format(modelfile, time() - t0))
+if network_name.lower() == 'custom' and args.dropout is not None:
+    network.dropout = args.dropout
+    logger.info('\nDropout changed to {}'.format(args.dropout))
 network_params = model.params
 optimizer = optim_method(model.parameters(), lr=lr, weight_decay=weight_decay)
 loss_fn = lossfn()
