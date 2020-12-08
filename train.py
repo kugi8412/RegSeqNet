@@ -38,8 +38,7 @@ RESULTS_COLS = OrderedDict({
 })
 
 
-def adjust_learning_rate(epoch, optimizer):
-    lr = 0.01
+def adjust_learning_rate(lr, epoch, optimizer):
 
     if epoch > 500:
         lr = lr / 100000
@@ -306,7 +305,7 @@ for epoch in range(num_epochs+1):
 
     # Call the learning rate adjustment function
     if not args.no_adjust_lr:
-        adjust_learning_rate(epoch, optimizer)
+        adjust_learning_rate(lr, epoch, optimizer)
 
     # Calculate metrics
     train_losses, train_sens, train_spec = calculate_metrics(confusion_matrix, train_loss_neurons)
