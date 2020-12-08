@@ -39,7 +39,6 @@ RESULTS_COLS = OrderedDict({
 
 
 def adjust_learning_rate(lr, epoch, optimizer):
-
     if epoch > 500:
         lr = lr / 100000
     elif epoch > 400:
@@ -62,7 +61,7 @@ parser.add_argument('data', action='store', metavar='DATASET', type=str, nargs='
 parser.add_argument('-n', '--network', action='store', metavar='NAME', type=str, default='basset',
                     help='type of the network to train, default: Basset Network')
 parser = basic_params(parser)
-parser.add_argument('--run', action='store', metavar='NUMBER', type=str, default='0',
+parser.add_argument('--run', action='store', metavar='NUMBER', type=str, default=None,
                     help='number of the analysis, by default NAMESPACE is set to [NETWORK][RUN]')
 parser.add_argument('--train', action='store', metavar='NUM', type=int, default=None,
                     help='Number of sequences for training')
@@ -109,8 +108,11 @@ args = parser.parse_args()
 
 batch_size, num_workers, num_epochs, acc_threshold, seq_len = args.batch_size, args.num_workers, args.num_epochs, \
                                                               args.acc_threshold, args.seq_len
-
-path, output, namespace, seed = parse_arguments(args, args.data, namesp=args.network + args.run)
+if args.run is None:
+    namesp = args.network + '0'
+else:
+    namesp = args.network + args.run
+path, output, namespace, seed = parse_arguments(args, args.data, namesp=namesp)
 # create folder for the output files
 if os.path.isdir(output):
     shutil.rmtree(output)
