@@ -104,6 +104,9 @@ parser.add_argument('--constant_class', action='store', metavar='CLASS', type=st
                     help='If all sequences from the given dataset should belong to given class')
 parser.add_argument('--dropout', action='store', metavar='FLOAT', type=float, default=None,
                     help='Dropout for training (available only for Custom network), default value is 0.5')
+parser.add_argument('--check_the_subset', action='store', metavar='FILE', type=str, nargs='+', default=None,
+                    help='File with list of IDs of sequences that should be used for additional validation '
+                         'during training')
 args = parser.parse_args()
 
 batch_size, num_workers, num_epochs, acc_threshold, seq_len = args.batch_size, args.num_workers, args.num_epochs, \
@@ -239,6 +242,26 @@ valid_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampl
 
 logger.info('\nTraining and validation datasets built in {:.2f} s'.format(time() - t0))
 
+if args.check_the_subset is not None:
+    subset_ids = []
+    for names_file in args.check_the_subset:
+        if not os.path.isfile(names_file):
+            names_dir, _ = os.path.split(data_dir[0])
+            names_file = os.path.join(names_dir, names_file)
+        with open(names_file, 'r') as f:
+            subset_ids += f.read().strip().split('\n')
+            logger.info('Check the subset: sequences names read from {}'.format(names_file))
+    subset_ids = set(subset_ids)
+    logger.info('Read {} sequences to check'.format(len(subset_ids)))
+    subset_indices = dataset.get_indices(subset_ids)
+    subset_train_indices = [el for el in subset_indices if el in train_indices]
+    subset_valid_indices = [el for el in subset_indices if el in valid_indices]
+    subset_train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                                      sampler=SubsetRandomSampler(subset_train_indices))
+    subset_valid_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                                      sampler=SubsetRandomSampler(subset_valid_indices))
+    subset_class_stage = [dataset.get_classes(el) for el in [subset_train_indices, subset_valid_indices]]
+
 num_batches = math.ceil(train_len / batch_size)
 
 model = network(dataset.seq_len)
@@ -318,7 +341,13 @@ for epoch in range(num_epochs+1):
     except ValueError:
         train_auc = None
 
-    with torch.no_grad():
+    if epoch == num_epochs:
+        valid_losses, valid_sens, valid_spec, valid_auc, valid_output_values = \
+            validate(model, valid_loader, num_classes, num_batches, use_cuda, output_values=valid_output_values)
+    else:
+        valid_losses, valid_sens, valid_spec, valid_auc = \
+            validate(model, valid_loader, num_classes, num_batches, use_cuda)
+    '''with torch.no_grad():
         model.eval()
         confusion_matrix = np.zeros((num_classes, num_classes))
         valid_loss_neurons = [[] for _ in range(num_classes)]
@@ -349,7 +378,20 @@ for epoch in range(num_epochs+1):
     try:
         valid_auc = calculate_auc(true, scores)
     except ValueError:
-        valid_auc = None
+        valid_auc = None'''
+
+    if args.check_the_subset is not None:
+        subset_train_losses, subset_train_sens, subset_train_spec, subset_train_auc = \
+            validate(model, subset_train_loader, num_classes, num_batches, use_cuda)
+        subset_valid_losses, subset_valid_sens, subset_valid_spec, subset_valid_auc = \
+            validate(model, subset_valid_loader, num_classes, num_batches, use_cuda)
+        (subset_results_table), subset_old_results = build_loggers('subset', output=output, namespace=namespace,
+                                                                   verbose_mode=False, logfile=False, resultfile=True)
+        if not subset_old_results:
+            subset_results_table, subset_columns = results_header('subset', subset_results_table, RESULTS_COLS, classes)
+        else:
+            subset_columns = read_results_columns(subset_results_table, RESULTS_COLS)
+        write_results(subset_results_table, subset_columns, ['subset_train', 'subset_valid'], globals(), epoch)
 
     # Save the model if the test acc is greater than our current best
     if mean(valid_sens) > best_acc and epoch < num_epochs:
@@ -366,9 +408,18 @@ for epoch in range(num_epochs+1):
     # Write the results
     write_results(results_table, columns, ['train', 'valid'], globals(), epoch)
     # Print the metrics
-    logger.info("Epoch {} finished in {:.2f} min\nTrain loss: {:1.3f}\n{:>35s}{:.5s}, {:.5s}, {:.5s}"
-                .format(epoch, (time() - t0)/60, train_loss_reduced, '', 'SENSITIVITY', 'SPECIFICITY', 'AUC'))
-    logger.info("--{:>18s} :{:>5} seqs{:>22}".format('TRAINING', train_len, "--"))
+    logger.info("Epoch {} finished in {:.2f} min\nTrain loss: {:1.3f}"
+                .format(epoch, (time() - t0)/60, train_loss_reduced))
+
+    print_results_log(logger, 'TRAINING', dataset.classes, train_sens, train_spec, train_auc, class_stage[0])
+    print_results_log(logger, 'VALIDATION', dataset.classes, valid_sens, valid_spec, valid_auc, class_stage[1], header=False)
+    if args.check_the_subset is not None:
+        print_results_log(logger, 'TRAINING-SUBSET', dataset.classes, subset_train_sens, subset_train_spec,
+                          subset_train_auc, subset_class_stage[0], header=False)
+        print_results_log(logger, 'VALIDATION-SUBSET', dataset.classes, subset_valid_sens, subset_valid_spec,
+                          subset_valid_auc, subset_class_stage[1], header=False)
+
+    '''logger.info("--{:>18s} :{:>5} seqs{:>22}".format('TRAINING', train_len, "--"))
     if train_auc is not None:
         for cl, sens, spec, auc in zip(dataset.classes, train_sens, train_spec, train_auc):
             logger.info('{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:1.3f}'.format(cl, len(class_stage[0][cl]), sens, spec, auc[0]))
@@ -397,7 +448,7 @@ for epoch in range(num_epochs+1):
     else:
         logger.info(
             "--{:>18s} : {:1.3f}, {:1.3f}{:>18}\n\n".
-            format('VALIDATION MEANS', *list(map(mean, [valid_sens, valid_spec])), "--"))
+            format('VALIDATION MEANS', *list(map(mean, [valid_sens, valid_spec])), "--"))'''
 
     if mean(valid_sens) >= acc_threshold:
         logger.info('Validation accuracy threshold reached!')

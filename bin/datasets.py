@@ -170,3 +170,13 @@ class SeqsDataset(Dataset):
             else:
                 warn('{} sequence has too many NN'.format(self.IDs[i]))
         return result
+
+    def get_indices(self, IDs):
+        result = []
+        for el in IDs:
+            if el in self.IDs:
+                result.append(self.IDs.index(el))
+            else:
+                print('WARNING: Sequence with ID: {} is not a part of this dataset'.format(el))
+                result.append(None)
+        return result

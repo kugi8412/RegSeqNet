@@ -307,7 +307,7 @@ def write_results(logger, columns, stages, variables, *beginning):
                 result_string += '\t{}'.format('; '.join(begin))
             else:
                 result_string += '\t{}'.format(begin)
-        if stage in ['train', 'valid']:
+        if 'train' in stage or 'valid' in stage:
             result_string += '\t{}'.format(stage)
         for col, formatting in columns.values():
             if col[-1].isdigit():
@@ -468,6 +468,75 @@ def params_from_file(param_file, data_dir=()):
 def read_classes(file):
     _, _, _, _, neurons, _, _ = params_from_file(file)
     return neurons
+
+
+def validate(model, loader, num_classes, num_batches, use_cuda, output_values=None, logger=None):
+    with torch.no_grad():
+        model.eval()
+        confusion_matrix = np.zeros((num_classes, num_classes))
+        loss_neurons = [[] for _ in range(num_classes)]
+        true, scores = [], []
+        for i, (seqs, labels) in enumerate(loader):
+            if use_cuda:
+                seqs = seqs.cuda()
+                labels = labels.cuda()
+            seqs = seqs.float()
+            labels = labels.long()
+
+            outputs = model(seqs)
+
+            for o, l in zip(outputs, labels):
+                loss_neurons[l].append(-math.log((math.exp(o[l])) / (sum([math.exp(el) for el in o]))))
+
+            _, indices = torch.max(outputs, axis=1)
+            for ind, label, outp in zip(indices, labels.cpu(), outputs):
+                confusion_matrix[ind][label] += 1
+                if output_values is not None:
+                    output_values[label] = [el + [outp[j].cpu().item()] for j, el in
+                                            enumerate(output_values[label])]
+
+            true += labels.tolist()
+            scores += outputs.tolist()
+
+            if logger is not None and i % 10 == 0:
+                logger.info('Batch {}/{}'.format(i, num_batches))
+
+    # Calculate metrics
+    losses, sens, spec = calculate_metrics(confusion_matrix, loss_neurons)
+    try:
+        auc = calculate_auc(true, scores)
+    except ValueError:
+        auc = None
+
+    if output_values is not None:
+        return losses, sens, spec, auc, output_values
+    else:
+        return losses, sens, spec, auc
+
+
+def print_results_log(logger, stage_desc, classes, stage_sens, stage_spec, stage_auc, class_stage, header=True):
+    from statistics import mean
+    if header:
+        logger.info("{:>35s}{:.5s}, {:.5s}, {:.5s}".format('', 'SENSITIVITY', 'SPECIFICITY', 'AUC'))
+    logger.info("--{:>18s} :{:>5} seqs{:>22}".
+                format(stage_desc, sum([len(el) for el in class_stage]), "--"))
+    if stage_auc is not None:
+        for cl, sens, spec, auc in zip(classes, stage_sens, stage_spec, stage_auc):
+            logger.info(
+                '{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:1.3f}'.format(cl, len(class_stage[cl]), sens, spec,
+                                                                        auc[0]))
+        logger.info(
+            "--{:>18s} : {:1.3f}, {:1.3f}, {:1.3f}{:>12}".
+                format('{} MEANS'.format(stage_desc),
+                       *list(map(mean, [stage_sens, stage_spec, [el[0] for el in stage_auc]])),
+                       "--"))
+    else:
+        for cl, sens, spec in zip(classes, stage_sens, stage_spec):
+            logger.info(
+                '{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, ----'.format(cl, len(class_stage[cl]), sens, spec))
+        logger.info(
+            "--{:>18s} : {:1.3f}, {:1.3f}{:>18}\n\n".
+                format('{} MEANS'.format(stage_desc), *list(map(mean, [stage_sens, stage_spec])), "--"))
 
 '''def print_results(logger, columns, variables, epoch):
     logger.info("Epoch {} finished in {:.2f} min\nTrain loss: {:1.3f}\n{:>35s}{:.5s}, {:.5s}"

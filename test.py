@@ -135,7 +135,10 @@ confusion_matrix = np.zeros((num_classes, num_classes))
 output_values = [[[] for _ in range(num_classes)] for _ in range(num_classes)]
 logger.info('\n--- TESTING ---')
 t0 = time()
-with torch.no_grad():
+
+test_losses, test_sens, test_spec, test_auc, output_values = \
+    validate(model, loader, num_classes, num_batches, use_cuda, output_values=output_values, logger=logger)
+'''with torch.no_grad():
     model.eval()
     for i, (seqs, labels) in enumerate(loader):
         seqs = seqs.float().to(device=device)
@@ -159,12 +162,13 @@ with torch.no_grad():
 
 # Calculate metrics
 test_losses, test_sens, test_spec = calculate_metrics(confusion_matrix, test_loss_neurons)
-test_loss_reduced = math.floor(mean([el for el in test_losses if el])*10/10)
+
 try:
     test_auc = calculate_auc(true, scores)
 except ValueError:
-    test_auc = [['-' for _ in dataset.classes] for _ in dataset.classes]
+    test_auc = [['-' for _ in dataset.classes] for _ in dataset.classes]'''
 
+test_loss_reduced = math.floor(mean([el for el in test_losses if el])*10/10)
 # Write the results
 write_results(results_table, columns, ['test'], globals(), data_dir, subset)
 np.save(os.path.join(output, '{}_{}_outputs'.format(namespace, subset)), np.array(output_values))
@@ -173,20 +177,25 @@ with open(os.path.join(output, '{}_{}.txt'.format(namespace, subset)), 'w') as f
     f.write('\n'.join(dataset.IDs))
 
 accuracy = sum([confusion_matrix[i][i] for i in range(confusion_matrix.shape[0])]) / len(dataset)
-logger.info("Testing finished in {:.2f} min\nTest loss: {:1.3f}\nTest accuracy: {:1.3f}\n{:>35s}{:.5s}, {:.5s}, {:.5s}"
-            .format((time() - t0) / 60, test_loss_reduced, accuracy, '', 'SENSITIVITY', 'SPECIFICITY', 'AUC'))
-logger.info("--{:>18s} :{:>5} seqs{:>22}".format('TESTING', len(dataset), "--"))
+logger.info("Testing of {} finished in {:.2f} min\nTest loss: {:1.3f}\nTest accuracy: {:1.3f}"
+            .format(namespace, (time() - t0)/60, test_loss_reduced, accuracy))
 
-if isinstance(test_auc[0][0], float):
+print_results_log(logger, 'TESTING', dataset.classes, test_sens, test_spec, test_auc, class_stage[0])
+
+'''logger.info("{:>35s}{:.5s}, {:.5s}, {:.5s}\n--{:>18s} :{:>5} seqs{:>22}".
+            format('', 'SENSITIVITY', 'SPECIFICITY', 'AUC', 'TESTING', len(dataset), "--"))
+
+if test_auc is not None:
     for cl, sens, spec, auc in zip(dataset.classes, test_sens, test_spec, test_auc):
-        logger.info('{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:1.3f}'.format(cl, len(class_stage[cl]), sens, spec, auc[0]))
-    logger.info(
-            "--{:>18s} : {:1.3f}, {:1.3f}, {:1.3f}{:>12}".
-            format('TESTING MEANS', *list(map(mean, [test_sens, test_spec, [el[0] for el in test_auc]])), "--"))
+        logger.info(
+            '{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:1.3f}'.format(cl, len(class_stage[0][cl]), sens, spec, auc[0]))
+        logger.info(
+            "--{:>18s} : {:1.3f}, {:1.3f}, {:1.3f}{:>12}\n\n".
+                format('TESTING MEANS', *list(map(mean, [test_sens, test_spec, [el[0] for el in test_auc]])),
+                       "--"))
 else:
-    for cl, sens, spec, auc in zip(dataset.classes, test_sens, test_spec, test_auc):
-        logger.info('{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:4s}'.format(cl, len(class_stage[cl]), sens, spec, auc[0]))
+    for cl, sens, spec in zip(dataset.classes, test_sens, test_spec):
+        logger.info('{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, ----'.format(cl, len(class_stage[0][cl]), sens, spec))
     logger.info(
-        "--{:>18s} : {:1.3f}, {:1.3f}, {}{:>12}".
-            format('TESTING MEANS', *list(map(mean, [test_sens, test_spec])), test_auc[0][0], "--"))
-logger.info('Testing of {} finished in {:.2f} min'.format(namespace, (time() - t0)/60))
+        "--{:>18s} : {:1.3f}, {:1.3f}{:>18}\n\n".
+            format('TESTING MEANS', *list(map(mean, [test_sens, test_spec])), "--"))'''

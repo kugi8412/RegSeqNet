@@ -171,11 +171,11 @@ for i, (stage, value) in enumerate(zip(stages, values)):  # for each stage
             else:
                 a.set_xticks([el for el in np.arange(1, len(epochs), math.ceil(len(epochs)/num_xticks))] + [len(epochs)])
             if len(value[j][0]) == len(neurons):  # check number of values for 1st epoch
-                y = [el[j] for el in value[j]]
-                plot_one(a, epochs, y, '.', neurons[j], COLORS[j])
-                ''' for k, n in enumerate(neurons):  # for each neuron
+                # y = [el[j] for el in value[j]]
+                # plot_one(a, epochs, y, '.', neurons[j], COLORS[j])
+                for k, n in enumerate(neurons):  # for each neuron
                     y = [el[k] for el in value[j]]
-                    plot_one(a, epochs, y, '.', n, COLORS[k])'''
+                    plot_one(a, epochs, y, '.', n, COLORS[k])
             elif len(value[j][0]) == 1:  # or for single values
                 plot_one(a, epochs, value[j], '.', 'general', COLORS[-1])
             else:
