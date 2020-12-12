@@ -88,7 +88,7 @@ network, data_dir, seq_len, ch, classes, _, _ = \
     params_from_file(os.path.join(output, '{}_params.txt'.format(namespace)), data_dir=data_dir)
 
 # Define loggers for logfile and for results
-(logger, results_table), old_results = build_loggers('test', output=output, namespace=namespace)
+[logger, results_table], old_results = build_loggers('test', output=output, namespace=namespace)
 
 logger.info('\nTesting the network {} begins {}\nInput data: {} from {}\nOutput directory: {}\n'.format(
     modelfile, datetime.now().strftime("%d/%m/%Y %H:%M:%S"), subset, data_dir, output))

@@ -105,7 +105,7 @@ else:
         path = data_dir[0]
 
 # Define files for logs and for results
-(logger, results_table), old_results = build_loggers('cv', output=output, namespace=namespace)
+[logger, results_table], old_results = build_loggers('cv', output=output, namespace=namespace)
 logger.info('\nAnalysis {} begins {}\nInput data: {}\nOutput directory: {}\n'.format(
     namespace, datetime.now().strftime("%d/%m/%Y %H:%M:%S"), '; '.join(data_dir), output))
 

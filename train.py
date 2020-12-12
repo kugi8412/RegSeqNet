@@ -158,7 +158,7 @@ else:
         namespace += '-retrain'
 
 # Define files for logs and for results
-(logger, results_table), old_results = build_loggers('train', output=output, namespace=namespace)
+[logger, results_table], old_results = build_loggers('train', output=output, namespace=namespace)
 
 logger.info('\nAnalysis {} begins {}\nInput data: {}\nOutput directory: {}\n'.format(
     namespace, datetime.now().strftime("%d/%m/%Y %H:%M:%S"), '; '.join(data_dir), output))
@@ -261,6 +261,12 @@ if args.check_the_subset is not None:
     subset_valid_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                       sampler=SubsetRandomSampler(subset_valid_indices))
     subset_class_stage = [dataset.get_classes(el) for el in [subset_train_indices, subset_valid_indices]]
+    [subset_results_table], subset_old_results = build_loggers('subset', output=output, namespace=namespace,
+                                                               verbose_mode=False, logfile=False, resultfile=True)
+    if not subset_old_results:
+        subset_results_table, subset_columns = results_header('subset', subset_results_table, RESULTS_COLS, classes)
+    else:
+        subset_columns = read_results_columns(subset_results_table, RESULTS_COLS)
 
 num_batches = math.ceil(train_len / batch_size)
 
@@ -385,12 +391,6 @@ for epoch in range(num_epochs+1):
             validate(model, subset_train_loader, num_classes, num_batches, use_cuda)
         subset_valid_losses, subset_valid_sens, subset_valid_spec, subset_valid_auc = \
             validate(model, subset_valid_loader, num_classes, num_batches, use_cuda)
-        (subset_results_table), subset_old_results = build_loggers('subset', output=output, namespace=namespace,
-                                                                   verbose_mode=False, logfile=False, resultfile=True)
-        if not subset_old_results:
-            subset_results_table, subset_columns = results_header('subset', subset_results_table, RESULTS_COLS, classes)
-        else:
-            subset_columns = read_results_columns(subset_results_table, RESULTS_COLS)
         write_results(subset_results_table, subset_columns, ['subset_train', 'subset_valid'], globals(), epoch)
 
     # Save the model if the test acc is greater than our current best
