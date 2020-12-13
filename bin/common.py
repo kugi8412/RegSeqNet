@@ -143,12 +143,18 @@ def calculate_auc(true, scores):
     for neuron in range(num_classes):
         y_true = [1 if el == neuron else 0 for el in true]
         y_score = [el[neuron] for el in scores]
-        auc[neuron][neuron] = roc_auc_score(y_true, y_score)
+        if len(set(y_true)) <= 1:
+            auc[neuron][neuron] = np.nan
+        else:
+            auc[neuron][neuron] = roc_auc_score(y_true, y_score)
         for neg in [i for i in range(num_classes) if i != neuron]:
             y_help = [1 if el == neuron else 0 if el == neg else -1 for el in true]
             y_score = [el[neuron] for use, el in zip(y_help, scores) if use != -1]
             y_true = [el for el in y_help if el != -1]
-            auc[neuron][neg] = roc_auc_score(y_true, y_score)
+            if len(set(y_true)) <= 1:
+                auc[neuron][neg] = np.nan
+            else:
+                auc[neuron][neg] = roc_auc_score(y_true, y_score)
     return auc
 
 
@@ -269,9 +275,9 @@ def results_header(stage, logger, columns, classes=()):
         for i, classname in enumerate(classes):
             columns['AUC - {}'.format(classname)] = [name.replace('INT', str(i)), formatting]
     towrite = '\t'.join(columns.keys())
-    if stage == 'train':
+    if 'train' in stage:
         logger.info('Epoch\tStage\t{}'.format(towrite))
-    elif stage == 'test':
+    elif 'test' in stage:
         logger.info('Dataset\tSubset\t{}'.format(towrite))
     return logger, columns
 
@@ -375,7 +381,7 @@ def build_loggers(stage, output='.', namespace='test', verbose_mode=True, logfil
         log_handler.setFormatter(formatter)
         logger.addHandler(log_handler)
     if resultfile:
-        results_table = logging.getLogger('results')
+        results_table = logging.getLogger('{}_results'.format(stage))
         results_file = os.path.join(output, '{}_{}_results.tsv'.format(namespace, stage))
         if os.path.isfile(results_file):
             old_results = True
@@ -503,11 +509,7 @@ def validate(model, loader, num_classes, num_batches, use_cuda, output_values=No
 
     # Calculate metrics
     losses, sens, spec = calculate_metrics(confusion_matrix, loss_neurons)
-    try:
-        auc = calculate_auc(true, scores)
-    except ValueError:
-        auc = None
-
+    auc = calculate_auc(true, scores)
     if output_values is not None:
         return losses, sens, spec, auc, output_values
     else:
@@ -519,24 +521,14 @@ def print_results_log(logger, stage_desc, classes, stage_sens, stage_spec, stage
     if header:
         logger.info("{:>35s}{:.5s}, {:.5s}, {:.5s}".format('', 'SENSITIVITY', 'SPECIFICITY', 'AUC'))
     logger.info("--{:>18s} :{:>5} seqs{:>22}".
-                format(stage_desc, sum([len(el) for el in class_stage]), "--"))
-    if stage_auc is not None:
-        for cl, sens, spec, auc in zip(classes, stage_sens, stage_spec, stage_auc):
-            logger.info(
-                '{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:1.3f}'.format(cl, len(class_stage[cl]), sens, spec,
-                                                                        auc[0]))
+                format(stage_desc, sum([len(el) for el in class_stage.values()]), "--"))
+    for i, (cl, sens, spec, auc) in enumerate(zip(classes, stage_sens, stage_spec, stage_auc)):
         logger.info(
-            "--{:>18s} : {:1.3f}, {:1.3f}, {:1.3f}{:>12}".
-                format('{} MEANS'.format(stage_desc),
-                       *list(map(mean, [stage_sens, stage_spec, [el[0] for el in stage_auc]])),
-                       "--"))
-    else:
-        for cl, sens, spec in zip(classes, stage_sens, stage_spec):
-            logger.info(
-                '{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, ----'.format(cl, len(class_stage[cl]), sens, spec))
-        logger.info(
-            "--{:>18s} : {:1.3f}, {:1.3f}{:>18}\n\n".
-                format('{} MEANS'.format(stage_desc), *list(map(mean, [stage_sens, stage_spec])), "--"))
+            '{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:1.3f}'.format(cl, len(class_stage[cl]), sens, spec, auc[i]))
+    logger.info(
+        "--{:>18s} : {:1.3f}, {:1.3f}, {:1.3f}{:>12}\n".
+            format('MEANS', *list(map(mean, [stage_sens, stage_spec,
+                                             [el[i] for i, el in enumerate(stage_auc) if not np.isnan(el[i])]])), "--"))
 
 '''def print_results(logger, columns, variables, epoch):
     logger.info("Epoch {} finished in {:.2f} min\nTrain loss: {:1.3f}\n{:>35s}{:.5s}, {:.5s}"

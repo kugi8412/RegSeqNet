@@ -261,10 +261,10 @@ if args.check_the_subset is not None:
     subset_valid_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                                       sampler=SubsetRandomSampler(subset_valid_indices))
     subset_class_stage = [dataset.get_classes(el) for el in [subset_train_indices, subset_valid_indices]]
-    [subset_results_table], subset_old_results = build_loggers('subset', output=output, namespace=namespace,
+    [subset_results_table], subset_old_results = build_loggers('subset-train', output=output, namespace=namespace,
                                                                verbose_mode=False, logfile=False, resultfile=True)
     if not subset_old_results:
-        subset_results_table, subset_columns = results_header('subset', subset_results_table, RESULTS_COLS, classes)
+        subset_results_table, subset_columns = results_header('subset-train', subset_results_table, RESULTS_COLS, classes)
     else:
         subset_columns = read_results_columns(subset_results_table, RESULTS_COLS)
 
@@ -342,10 +342,7 @@ for epoch in range(num_epochs+1):
     train_losses, train_sens, train_spec = calculate_metrics(confusion_matrix, train_loss_neurons)
     train_loss_reduced = train_loss_reduced / num_batches
     assert math.floor(mean([el for el in train_losses if el])*10/10) == math.floor(float(train_loss_reduced)*10/10)
-    try:
-        train_auc = calculate_auc(true, scores)
-    except ValueError:
-        train_auc = None
+    train_auc = calculate_auc(true, scores)
 
     if epoch == num_epochs:
         valid_losses, valid_sens, valid_spec, valid_auc, valid_output_values = \
