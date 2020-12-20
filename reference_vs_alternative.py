@@ -7,6 +7,8 @@ from bin.common import *
 COLORS = ['C{}'.format(i) for i in range(10)]
 
 parser = argparse.ArgumentParser(description='Compare network outputs for reference and for alternative sequences')
+parser.add_argument('plot_type', choices=['scatter', 'boxplot', 'barplot'], metavar='TYPE',
+                    help='Type of the plot, choose: scatter, boxplot, barplot')
 parser.add_argument('--name', '--test_namespace', metavar='NAMES', nargs='+', default=['test'],
                     help='Namespaces of test analyses, default: test')
 parser.add_argument('--name_pos', action='store', metavar='INT', type=int, default=None,
@@ -16,7 +18,7 @@ args = parser.parse_args()
 path, outdir, namespace, seed = parse_arguments(args, None, model_path=True)
 
 
-def plot_ref_alt(name):
+def load_data(name):
     name = name.replace('_', '-')
     outputs_file = os.path.join(path, '{}_{}_outputs.npy'.format(namespace, name))
     outputs = np.load(outputs_file, allow_pickle=True)
@@ -36,6 +38,11 @@ def plot_ref_alt(name):
             if line[1] == name:
                 seq_file = line[0]
                 break
+    return outputs, labels, seq_ids, num_seqs, seq_file, name
+
+
+def plot_scatter(name):
+    outputs, labels, seq_ids, num_seqs, seq_file, name = load_data(name)
 
     label_names = ['' for _ in range(num_seqs)]
     if os.path.isfile(seq_file):
@@ -123,6 +130,54 @@ def plot_ref_alt(name):
     print('Plot saved to {}'.format(plot_file))
 
 
+def plot_boxplot(name):
+    outputs, labels, seq_ids, num_seqs, seq_file, name = load_data(name)
+    label_names = ['' for _ in range(num_seqs)]
+    patients = ['' for _ in range(num_seqs)]
+    snps = [0 for _ in range(num_seqs)]
+    with open(seq_file, 'r') as f:
+        for line in f:
+            if line.startswith('>'):
+                l = line.strip('>\n ').split(' ')
+                if args.name_pos is not None:
+                    pos = args.name_pos
+                    id = l[pos]
+                else:
+                    id = '{}_{}'.format(l[0].lstrip('chr'), l[1])
+                    pos = seq_ids.index(id)
+                label_names[pos] = '{} {}'.format(l[3], l[4])
+                patients[pos] = id
+                snps[pos] = int(l[7].rstrip('SNPs'))
+    output_data, num_snps = [], []
+    for i, (label, n, nsnp) in enumerate(zip(labels, label_names, snps)):
+        output = outputs[label]
+        seq_pos = len([el for el in labels[:i] if el == label])
+        correct_out = output[label][seq_pos]
+        output_data.append(correct_out)
+        num_snps.append(nsnp)
+    num_boxes = 10
+    box_size = max(num_snps) // (num_boxes - 1)
+    nsnp_range = [[0, 0], [1, box_size]] + [[i*box_size+1, (i+1)*box_size] for i in range(1, num_boxes-2)] + \
+                 [(num_boxes-1)*box_size, np.inf]
+    y_values = [[el for el, la in zip(output_data, num_snps) if v1 <= la < v2]
+                for v1, v2 in nsnp_range]
+    x_ticks = [str(el[0]) if el[1] == el[0] or el[1] == np.inf else '{}-{}'.format(el[0], el[1]) for el in nsnp_range]
+    plt.boxplot(y_values)
+    plt.xticks(x_ticks)
+    plt.show()
+
+
+def plot_barplot(name):
+    return 0
+
+
 for name in args.name:
-    print('\nPlot for {}'.format(name))
-    plot_ref_alt(name)
+    print('\nPlot "{}" for {}'.format(args.plot_type, name))
+    if args.plot_type == 'scatter':
+        plot_scatter(name)
+    elif args.plot_type == 'boxplot':
+        plot_boxplot(name)
+    elif args.plot_type == 'barplot':
+        plot_barplot(name)
+    else:
+        raise ValueError

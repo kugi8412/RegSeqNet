@@ -85,6 +85,7 @@ class SeqsDataset(Dataset):
         self.num_seqs = len(self.IDs)
         self.seq_len = seq_len
         self.encoder = OHEncoder()
+        self.seqs_per_class = {el: [] for el in self.classes}
         if constant_class is not None:
             self.constant_class = self.classes.index(constant_class.replace('-', ' '))
         else:
@@ -92,20 +93,22 @@ class SeqsDataset(Dataset):
         # check if sequences haven't got too many NN
         print('Checking number of NN in given sequences')
         for i in range(len(ids)):
-            out, id, ch = self.__getitem__(i, checking=True)
+            out, ID, ch, midpoint, strand, label, seq, desc = self.__getitem__(i, info=True)
             ch = ch.lstrip('chr')
-            if out is None:
-                ids.remove(id)
-            if not ch.replace('X', '23').replace('Y', '23').isdigit():
-                print('{} sequence comes from chr {} - sequence removed from the dataset'.format(id, ch))
-                ids.remove(id)
+            if not out:
+                ids.remove(ID)
+            elif not ch.replace('X', '23').replace('Y', '23').isdigit():
+                print('{} sequence comes from chr {} - sequence removed from the dataset'.format(ID, ch))
+                ids.remove(ID)
+            else:
+                self.seqs_per_class[self.classes[label]].append(i)
         self.IDs = ids
         self.num_seqs = len(self.IDs)
 
     def __len__(self):
         return len(self.IDs)
 
-    def __getitem__(self, index, info=False, checking=False):
+    def __getitem__(self, index, info=False):
         try:
             ID = self.IDs[int(index)]
         except ValueError:
@@ -132,23 +135,24 @@ class SeqsDataset(Dataset):
                 warn('In file {} is more than one sequence!'.format(filename))
         if self.constant_class is not None:
             label = self.constant_class
-        if info:
-            return ch, midpoint, strand, label, seq, desc
         encoded_seq = self.encoder(seq)
         if encoded_seq is None:
             print('In {} sequence is more than 5% unknown values - sequence removed from the dataset'.format(ID))
-            return None, ID, ch
+            if info:
+                return False, ID, ch, midpoint, strand, label, seq, desc
+            else:
+                return None, None
+        elif info:
+            return True, ID, ch, midpoint, strand, label, seq, desc
         X = torch.tensor(encoded_seq)
         X = X.reshape(1, *X.size())
         y = torch.tensor(label)
-        if checking:
-            return X, ID, ch
         return X, y
 
     def get_chrs(self, chr_lists):
         indices = [[] for _ in range(len(chr_lists))]
         for i in range(self.__len__()):
-            c, _, _, label, seq, _ = self.__getitem__(i, info=True)
+            _, _, c, _, _, label, seq, _ = self.__getitem__(i, info=True)
             try:
                 ch = int(c.strip('chr').replace('X', '23').replace('Y', '23'))
             except ValueError:
@@ -161,15 +165,9 @@ class SeqsDataset(Dataset):
     def get_classes(self, indices=None):
         # get number of sequences from each class
         if indices is None:
-            indices = [i for i in range(self.num_seqs)]
-        result = {el: [] for el in self.classes}
-        for i in indices:
-            _, y = self.__getitem__(i)
-            if y is not None:
-                result[self.classes[y]].append(i)
-            else:
-                warn('{} sequence has too many NN'.format(self.IDs[i]))
-        return result
+            return self.seqs_per_class
+        else:
+            return {key: [el for el in value if el in indices] for key, value in self.seqs_per_class.items()}
 
     def get_indices(self, IDs):
         result = []

@@ -1,8 +1,10 @@
 import argparse
 import os
+import numpy as np
 
 
 def rewrite_fasta(file, outdir=None, name_pos=None):
+    name_pos = [int(el) for el in name_pos]
     # check if there is more than one sequence in the given file
     with open(file, 'r') as f:
         i = 0
@@ -18,24 +20,31 @@ def rewrite_fasta(file, outdir=None, name_pos=None):
         outdir, name = os.path.split(file)
         namespace, _ = os.path.splitext(name)
         outdir = os.path.join(outdir, namespace)
-        if not os.path.isdir(outdir):
-            os.mkdir(outdir)
-    i = 0
-    with open(file, 'r') as f:
-        for line in f:
-            if line.startswith('>'):
-                if name_pos is not None:
-                    filename = line.strip().split(' ')[name_pos] + '.fasta'
+    if os.path.isdir(outdir):
+        num_files = len([el for el in os.listdir(outdir) if el.endswith('.fasta')])
+    else:
+        os.mkdir(outdir)
+        num_files = 0
+    if num_files == 0:
+        i = 0
+        with open(file, 'r') as f:
+            for line in f:
+                if line.startswith('>'):
+                    if name_pos is not None:
+                        filename = '-'.join([str(la) for la in np.array(line.strip('> \n').split(' '))[name_pos]]) + '.fasta'
+                    else:
+                        filename = '-'.join(line.strip('> \n').split(' ')[:2]).strip('chr ') + '.fasta'
+                    w = open(os.path.join(outdir, filename), 'w')
+                    w.write(line)
+                    i += 1
                 else:
-                    filename = '-'.join(line.strip().split(' ')[1:3]).strip('chr ') + '.fasta'
-                w = open(os.path.join(outdir, filename), 'w')
-                w.write(line)
-                i += 1
-            else:
-                w.write(line)
-                w.close()
-    print('Based on {} {} sequences were written into separated files in {}'.format(file, i, outdir))
-    return i, outdir
+                    w.write(line)
+                    w.close()
+        print('Based on {} {} sequences were written into separated files in {}'.format(file, i, outdir))
+        return i, outdir
+    else:
+        print('Directory {} with {} fasta files already exists - no rewritting was done.'.format(outdir, num_files))
+        return num_files, outdir
 
 
 def get_names(file, outfile):

@@ -73,7 +73,7 @@ assert classes == dataset.classes, 'List of classes is inconsistent'
 seq_ids = dataset.IDs
 seq_desc = []
 for i in seq_ids:
-    seq_desc.append(dataset.__getitem__(i, info=True)[5])
+    seq_desc.append(dataset.__getitem__(i, info=True)[7])
 X, y = dataset.__getitem__(0)
 labels = [y]
 X = [X]

@@ -9,7 +9,7 @@ from bin.common import *
 parser = argparse.ArgumentParser(description='Plot results based on given table')
 parser.add_argument('-t', '--table', action='store', metavar='NAME', type=str, default=None,
                     help='Results table with data to plot, if PATH is given, file is supposed to be '
-                         'in PATH directory: [PATH]/[NAME], default: [PATH]/[NAMESPACE]_results.tsv')
+                         'in PATH directory: [PATH]/[NAME], default: [PATH]/[NAMESPACE]_train/test_results.tsv')
 parser = basic_params(parser, param=True)
 parser.add_argument('-c', '--column', action='store', metavar='COL', nargs='+', type=str, default=['loss'],
                     help='Number or name of column(s) to plot, default: loss')
@@ -24,6 +24,10 @@ parser.add_argument('--not_valid', action='store_true',
                     help='Do not print values from validation')
 parser.add_argument('--print_mean', action='store_true',
                     help='Print also mean of the given data')
+parser.add_argument('--plot_one', action='store_true',
+                    help='Plot only AUC for given neuron vs rest (not given neuron vs other neuron)')
+parser.add_argument('--subset', action='store_true',
+                    help='Plot results for the subset of sequences (from [PATH]/[NAMESPACE]_subset-train_results.tsv)')
 group2 = parser.add_mutually_exclusive_group(required=False)
 group2.add_argument('--scatter', action='store_true',
                     help='Scatter plot')
@@ -37,8 +41,8 @@ path, output, namespace, seed = parse_arguments(args, args.table, model_path=Tru
 train = False
 valid = True
 test = False
-all = False
 cv = False
+all_ = False
 if args.train:
     train = True
 elif args.test:
@@ -63,9 +67,15 @@ if args.table is not None:
     else:
         table = args.table
 elif test:
-    table = os.path.join(path, namespace + '_test_results.tsv')
+    if args.subset:
+        table = os.path.join(path, namespace + '_subset-test_results.tsv')
+    else:
+        table = os.path.join(path, namespace + '_test_results.tsv')
 elif train or valid:
-    table = os.path.join(path, namespace + '_train_results.tsv')
+    if args.subset:
+        table = os.path.join(path, namespace + '_subset-train_results.tsv')
+    else:
+        table = os.path.join(path, namespace + '_train_results.tsv')
 elif cv:
     table = os.path.join(path, namespace + '_cv_results.tsv')
 else:
@@ -103,6 +113,8 @@ with open(table, 'r') as f:
         stages = ['cv']
     else:
         stages = [el for el in STAGES.keys() if globals()[el]]
+        if args.subset:
+            stages = ['subset_{}'.format(el) for el in stages]
     values = [[[] for _ in colnum] for el in stages]  # for each stage and for each column
     for e, line in enumerate(f):
         line = line.strip().split('\t')
@@ -115,12 +127,12 @@ with open(table, 'r') as f:
             if line[1] in stages:
                 i = stages.index(line[1])
                 for j, c in enumerate(colnum):
-                    values[i][j].append([float(el) if el != '-' else np.nan for el in line[c].split(', ')])
+                    values[i][j].append([float(el) if el not in ['-', 'None', 'nan'] else np.nan for el in line[c].split(', ')])
         elif test or cv:
             epochs.append(e)
             xticks.append('{}-{}'.format(os.path.split(line[0])[1], line[1]))
             for j, c in enumerate(colnum):
-                values[0][j].append([float(el) if el != '-' and el != 'None' else np.nan for el in line[c].split(', ')])
+                values[0][j].append([float(el) if el not in ['-', 'None', 'nan'] else np.nan for el in line[c].split(', ')])
 
 try:
     values = np.nan_to_num(values)
@@ -131,9 +143,10 @@ except ValueError:
 
 
 def plot_one(ax, x, y, line, label, color):
-    ax.plot(x, y, line, label=label, alpha=0.7, color=color)
-    ax.set_xlabel('Epoch')
-    ax.set_ylim(*ylims)
+    if not all([el == 0 for el in y]):
+        ax.plot(x, y, line, label=label, alpha=0.5, color=color)
+        ax.set_xlabel('Epoch')
+        ax.set_ylim(*ylims)
 
 
 neurons = get_classes_names(param)
@@ -146,7 +159,11 @@ if axes.shape[1] > 1:
 else:
     num_xticks = 20
 for i, (stage, value) in enumerate(zip(stages, values)):  # for each stage
-    axes[0, i].set_title(STAGES[stage])
+    if args.subset:
+        title = STAGES[stage.replace('subset_', '')] + ' - subset'
+    else:
+        title = STAGES[stage]
+    axes[0, i].set_title(title)
     for j, c in enumerate(colnum):  # for each column
         a = axes[j][i]
         if boxplot:
@@ -171,15 +188,15 @@ for i, (stage, value) in enumerate(zip(stages, values)):  # for each stage
             else:
                 a.set_xticks([el for el in np.arange(1, len(epochs), math.ceil(len(epochs)/num_xticks))] + [len(epochs)])
             if len(value[j][0]) == len(neurons):  # check number of values for 1st epoch
-                # y = [el[j] for el in value[j]]
-                # plot_one(a, epochs, y, '.', neurons[j], COLORS[j])
-                for k, n in enumerate(neurons):  # for each neuron
-                    y = [el[k] for el in value[j]]
-                    plot_one(a, epochs, y, '.', n, COLORS[k])
+                if args.plot_one:
+                    y = [el[j] for el in value[j]]
+                    plot_one(a, epochs, y, '.', neurons[j], COLORS[j])
+                else:
+                    for k, n in enumerate(neurons):  # for each neuron
+                        y = [el[k] for el in value[j]]
+                        plot_one(a, epochs, y, '.', n, COLORS[k])
             elif len(value[j][0]) == 1:  # or for single values
                 plot_one(a, epochs, value[j], '.', 'general', COLORS[-1])
-            else:
-                raise ValueError
             if args.print_mean and len(value[j]) == len(neurons):
                 y = [mean(el) for el in value[j]]
                 plot_one(a, epochs, y, 'x', 'mean', COLORS[-2])
@@ -188,5 +205,5 @@ fig.suptitle(namespace)
 #axes[-1][0].legend(bbox_to_anchor=(0, -0.07*(i+j+1)), loc="upper left", ncol=4)
 #axes[-1][0].legend(bbox_to_anchor=(0, -0.07), loc="upper left", ncol=4)
 plt.show()
-plotname = '-'.join([s[:5].lower() for s in stages]) + ':' + '-'.join([el.lower() for el in columns])
+plotname = '-'.join([s.lower().replace('_', '') for s in stages]) + ':' + '-'.join([el.lower() for el in columns])
 fig.savefig(os.path.join(output, namespace + '_{}.png'.format(plotname)))

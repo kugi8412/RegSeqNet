@@ -31,8 +31,8 @@ group1.add_argument('--dataset', action='store', metavar='DATA', type=str, defau
                     help='Directory or file with the data for testing')
 parser.add_argument('--batch_size', action='store', metavar='INT', type=int, default=64,
                     help='size of the batch, default: 64')
-parser.add_argument('--name_pos', action='store', metavar='INT', type=int, default=None,
-                    help='Position of sequence name in the fasta header, by default created as CHR:POSITION')
+parser.add_argument('--name_pos', action='store', metavar='INT', nargs='+', default=None,
+                    help='Position(s) of sequence name in the fasta header, by default created as CHR:POSITION')
 parser.add_argument('--subset', action='store', metavar='NAME', type=str, default=None,
                     help='Subset of given dataset for testing (txt file with names of sequences to select)')
 parser.add_argument('--constant_class', action='store', metavar='CLASS', type=str, default=None,
@@ -105,7 +105,7 @@ classes = dataset.classes
 num_classes = len(classes)
 loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
 logger.info('\nTesting data contains {} seqs:'.format(len(dataset)))
-class_stage = dataset.get_classes()
+class_stage = dataset.seqs_per_class
 for classname, el in class_stage.items():
     logger.info('{} - {}'.format(classname, len(el)))
 

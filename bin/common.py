@@ -47,7 +47,7 @@ STAGES = {
     'train': 'Training',
     'valid': 'Validation',
     'test': 'Testing',
-    'all': 'All',
+    'all_': 'All',
     'cv': 'CV'
 }
 

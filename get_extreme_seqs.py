@@ -41,7 +41,7 @@ else:
     seq_order = open(os.path.join(path, '{}_train.txt'.format(namespace)), 'r').read().strip().split('\n')
     outputs = np.load(os.path.join(path, '{}_train_outputs.npy'.format(namespace)), allow_pickle=True)
 
-labels = [dataset.__getitem__(el, info=True)[3] for el in seq_order]
+labels = [dataset.__getitem__(el, info=True)[5] for el in seq_order]
 
 subset = 'test' if args.test else 'valid' if args.valid else 'train'
 result_file = os.path.join(output, 'extreme_{}_{}_{}_{}.fasta'.format(namespace, subset, classes_str, args.num_seq))
@@ -57,7 +57,7 @@ for i, cl in enumerate(classes):
     worst = class_seq[order[:args.num_seq]]  # get given number of the worst seqs from cl class
     for towrite, desc in zip([best, worst], ['best', 'worst']):
         for j, s in enumerate(towrite):
-            ch, midpoint, strand, label, seq, _ = dataset.__getitem__(s, info=True)
+            _, _, ch, midpoint, strand, label, seq, _ = dataset.__getitem__(s, info=True)
             assert label == i
             result_fasta.write('> {} {} {} {} {}{}\n{}\n'.format(ch, midpoint, strand, cl, desc, j+1, seq))
 print('{} the best and {} the worst sequence(s) were written into {}'.format(args.num_seq, args.num_seq, result_file))
