@@ -350,38 +350,6 @@ for epoch in range(num_epochs+1):
     else:
         valid_losses, valid_sens, valid_spec, valid_auc = \
             validate(model, valid_loader, num_classes, num_batches, use_cuda)
-    '''with torch.no_grad():
-        model.eval()
-        confusion_matrix = np.zeros((num_classes, num_classes))
-        valid_loss_neurons = [[] for _ in range(num_classes)]
-        true, scores = [], []
-        for i, (seqs, labels) in enumerate(valid_loader):
-            if use_cuda:
-                seqs = seqs.cuda()
-                labels = labels.cuda()
-            seqs = seqs.float()
-            labels = labels.long()
-
-            outputs = model(seqs)
-
-            for o, l in zip(outputs, labels):
-                valid_loss_neurons[l].append(-math.log((math.exp(o[l])) / (sum([math.exp(el) for el in o]))))
-
-            _, indices = torch.max(outputs, axis=1)
-            for ind, label, outp in zip(indices, labels.cpu(), outputs):
-                confusion_matrix[ind][label] += 1
-                if epoch == num_epochs:
-                    valid_output_values[label] = [el + [outp[j].cpu().item()] for j, el in enumerate(valid_output_values[label])]
-
-            true += labels.tolist()
-            scores += outputs.tolist()
-
-    # Calculate metrics
-    valid_losses, valid_sens, valid_spec = calculate_metrics(confusion_matrix, valid_loss_neurons)
-    try:
-        valid_auc = calculate_auc(true, scores)
-    except ValueError:
-        valid_auc = None'''
 
     if args.check_the_subset is not None:
         subset_train_losses, subset_train_sens, subset_train_spec, subset_train_auc = \
@@ -415,37 +383,6 @@ for epoch in range(num_epochs+1):
                           subset_train_auc, subset_class_stage[0], header=False)
         print_results_log(logger, 'VALIDATION-SUBSET', dataset.classes, subset_valid_sens, subset_valid_spec,
                           subset_valid_auc, subset_class_stage[1], header=False)
-
-    '''logger.info("--{:>18s} :{:>5} seqs{:>22}".format('TRAINING', train_len, "--"))
-    if train_auc is not None:
-        for cl, sens, spec, auc in zip(dataset.classes, train_sens, train_spec, train_auc):
-            logger.info('{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:1.3f}'.format(cl, len(class_stage[0][cl]), sens, spec, auc[0]))
-    else:
-        for cl, sens, spec in zip(dataset.classes, train_sens, train_spec):
-            logger.info('{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, ----'.format(cl, len(class_stage[0][cl]), sens, spec))
-    logger.info("--{:>18s} :{:>5} seqs{:>22}".format('VALIDATION', valid_len, "--"))
-    if valid_auc is not None:
-        for cl, sens, spec, auc in zip(dataset.classes, valid_sens, valid_spec, valid_auc):
-            logger.info('{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:1.3f}'.format(cl, len(class_stage[1][cl]), sens, spec, auc[0]))
-    else:
-        for cl, sens, spec in zip(dataset.classes, valid_sens, valid_spec):
-            logger.info('{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, ----'.format(cl, len(class_stage[1][cl]), sens, spec))
-    if train_auc is not None:
-        logger.info(
-            "--{:>18s} : {:1.3f}, {:1.3f}, {:1.3f}{:>12}".
-            format('TRAINING MEANS', *list(map(mean, [train_sens, train_spec, [el[0] for el in train_auc]])), "--"))
-    else:
-        logger.info(
-            "--{:>18s} : {:1.3f}, {:1.3f}{:>18}".
-                format('TRAINING MEANS', *list(map(mean, [train_sens, train_spec])), "--"))
-    if valid_auc is not None:
-        logger.info(
-            "--{:>18s} : {:1.3f}, {:1.3f}, {:1.3f}{:>12}\n\n".
-            format('VALIDATION MEANS', *list(map(mean, [valid_sens, valid_spec, [el[0] for el in valid_auc]])), "--"))
-    else:
-        logger.info(
-            "--{:>18s} : {:1.3f}, {:1.3f}{:>18}\n\n".
-            format('VALIDATION MEANS', *list(map(mean, [valid_sens, valid_spec])), "--"))'''
 
     if mean(valid_sens) >= acc_threshold:
         logger.info('Validation accuracy threshold reached!')

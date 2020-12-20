@@ -11,8 +11,8 @@ parser.add_argument('plot_type', choices=['scatter', 'boxplot', 'barplot'], meta
                     help='Type of the plot, choose: scatter, boxplot, barplot')
 parser.add_argument('--name', '--test_namespace', metavar='NAMES', nargs='+', default=['test'],
                     help='Namespaces of test analyses, default: test')
-parser.add_argument('--name_pos', action='store', metavar='INT', type=int, default=None,
-                    help='Position of sequence name in the fasta header, by default created as CHR:POSITION')
+parser.add_argument('--name_pos', action='store', metavar='INT', nargs='+', default=None,
+                    help='Position(s) of sequence name in the fasta header, by default created as CHR:POSITION')
 parser = basic_params(parser)
 args = parser.parse_args()
 path, outdir, namespace, seed = parse_arguments(args, None, model_path=True)
@@ -54,11 +54,11 @@ def plot_scatter(name):
                 if line.startswith('>'):
                     l = line.strip('>\n ').split(' ')
                     if args.name_pos is not None:
-                        pos = args.name_pos
-                        id = l[pos]
+                        name_pos = [int(el) for el in args.name_pos]
+                        id = '-'.join(list(np.array(l)[name_pos]))
                     else:
                         id = '{}_{}'.format(l[0].lstrip('chr'), l[1])
-                        pos = seq_ids.index(id)
+                    pos = seq_ids.index(id)
                     label_names[pos] = '{} {}'.format(l[3], l[4])
                     patients[pos] = id
                 else:
@@ -140,11 +140,11 @@ def plot_boxplot(name):
             if line.startswith('>'):
                 l = line.strip('>\n ').split(' ')
                 if args.name_pos is not None:
-                    pos = args.name_pos
-                    id = l[pos]
+                    name_pos = [int(el) for el in args.name_pos]
+                    id = '-'.join(list(np.array(l)[name_pos]))
                 else:
                     id = '{}_{}'.format(l[0].lstrip('chr'), l[1])
-                    pos = seq_ids.index(id)
+                pos = seq_ids.index(id)
                 label_names[pos] = '{} {}'.format(l[3], l[4])
                 patients[pos] = id
                 snps[pos] = int(l[7].rstrip('SNPs'))

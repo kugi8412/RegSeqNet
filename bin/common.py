@@ -480,7 +480,7 @@ def read_classes(file):
     return neurons
 
 
-def validate(model, loader, num_classes, num_batches, use_cuda, output_values=None, logger=None):
+def validate(model, loader, num_classes, num_batches, use_cuda, output_values=None, logger=None, test=False):
     with torch.no_grad():
         model.eval()
         confusion_matrix = np.zeros((num_classes, num_classes))
@@ -514,9 +514,13 @@ def validate(model, loader, num_classes, num_batches, use_cuda, output_values=No
     # Calculate metrics
     losses, sens, spec = calculate_metrics(confusion_matrix, loss_neurons)
     auc = calculate_auc(true, scores)
-    if output_values is not None:
+    if output_values is not None and test:
+        return losses, sens, spec, auc, output_values, true, confusion_matrix
+    elif output_values is not None and not test:
         return losses, sens, spec, auc, output_values
-    else:
+    elif output_values is None and test:
+        return losses, sens, spec, auc, true, confusion_matrix
+    elif output_values is None and not test:
         return losses, sens, spec, auc
 
 
