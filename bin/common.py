@@ -59,18 +59,22 @@ class OHEncoder:
         self.dictionary = categories
         self.encoder.fit(categories.reshape(-1, 1))
 
-    def __call__(self, seq):
+    def __call__(self, seq, info=False):
         seq = list(seq)
         if 'N' in seq:
             pos = [i for i, el in enumerate(seq) if el == 'N']
             if len(pos) <= 0.05*len(seq):
-                print('{} unknown position(s) in given sequence - changed to random one(s)'.format(len(pos)))
+                if info:
+                    print('{} unknown position(s) in given sequence - changed to random one(s)'.format(len(pos)))
                 for p in pos:
                     seq[p] = random.choice(self.dictionary)
             else:
                 return None
-        s = np.array(seq).reshape(-1, 1)
-        return self.encoder.transform(s).T
+        if info:
+            return True
+        else:
+            s = np.array(seq).reshape(-1, 1)
+            return self.encoder.transform(s).T
 
     def decode(self, array):
         return ''.join([el[0] for el in self.encoder.inverse_transform(array.T)])

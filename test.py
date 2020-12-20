@@ -180,7 +180,7 @@ accuracy = sum([confusion_matrix[i][i] for i in range(confusion_matrix.shape[0])
 logger.info("Testing of {} finished in {:.2f} min\nTest loss: {:1.3f}\nTest accuracy: {:1.3f}"
             .format(namespace, (time() - t0)/60, test_loss_reduced, accuracy))
 
-print_results_log(logger, 'TESTING', dataset.classes, test_sens, test_spec, test_auc, class_stage[0])
+print_results_log(logger, 'TESTING', dataset.classes, test_sens, test_spec, test_auc, class_stage)
 
 '''logger.info("{:>35s}{:.5s}, {:.5s}, {:.5s}\n--{:>18s} :{:>5} seqs{:>22}".
             format('', 'SENSITIVITY', 'SPECIFICITY', 'AUC', 'TESTING', len(dataset), "--"))

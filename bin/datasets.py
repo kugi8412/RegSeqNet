@@ -135,7 +135,7 @@ class SeqsDataset(Dataset):
                 warn('In file {} is more than one sequence!'.format(filename))
         if self.constant_class is not None:
             label = self.constant_class
-        encoded_seq = self.encoder(seq)
+        encoded_seq = self.encoder(seq, info=info)
         if encoded_seq is None:
             print('In {} sequence is more than 5% unknown values - sequence removed from the dataset'.format(ID))
             if info:
