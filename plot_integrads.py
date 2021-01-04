@@ -62,7 +62,7 @@ try:
 except FileNotFoundError:
     results = np.load(os.path.join(path, 'integrads_all.npy'))[order]
 
-leap = 1
+leap = 40
 if args.single:
     min_value, max_value = 0, 0
     tt = 4
@@ -134,7 +134,7 @@ else:
         arg_classes = classes
     else:
         fig, axes = plt.subplots(nrows=len(seq_names), ncols=1, figsize=(12, 8), squeeze=False, sharex='col',
-                                 sharey='row', gridspec_kw={'hspace': 0.05, 'wspace': 0.05})
+                                 sharey='row', gridspec_kw={'hspace': 0.12, 'wspace': 0.05})
         arg_classes = ['True label']
     min_value, max_value = 0, 0
     for i, name in enumerate(arg_classes):
@@ -147,7 +147,9 @@ else:
                     cc = 'black'
                     for cl in classes:
                         axes[-1, -1].plot([], label=cl)
-                ax.set_title(name, fontsize=15, color=cc)
+                #ax.set_title(name, fontsize=15, color=cc)
+            elif j == len(seq_names)-1:
+                ax.set_xlabel('Sequence position')
             if i == 0:
                 ax.set_ylabel(seq, fontsize=8, color=COLORS[seq_labels[j]], rotation='horizontal', ha='right', va='center')
             if args.all_classes:
@@ -156,10 +158,18 @@ else:
                 result = results[classes[seq_labels[j]]][j]
             else:
                 result = results[j]
-            result = [result[:, i:i+leap].flatten() for i in range(0, seq_len, leap)]
+            if args.clip is not None:
+                start_point = int(seq_len / 2 - args.clip)
+                result = [result[:, start_point + i:start_point + i + leap].flatten() for i in
+                          range(0, 2 * args.clip, leap)]
+                new_len = 2 * args.clip
+                xticks = [i for i in np.arange(0, new_len + 0.5, new_len // 4)]
+                labels = [str(int(i)) for i in np.arange(start_point, start_point + new_len + 0.5, new_len // 4)]
+            else:
+                result = [result[:, i:i+leap].flatten() for i in range(0, seq_len, leap)]
+                labels = [str(int(i)) for i in np.arange(0, seq_len + 0.5, seq_len // 4)]
+                xticks = [int(el)//leap for el in labels]
             ax.boxplot(result, showfliers=True, whis=15.0)
-            labels = [i for i in np.arange(0, seq_len + 0.5,  seq_len//4)]
-            xticks = [i for i in range(0, len(result) + 0.5, len(result)//4)]
             ax.set_xticks(xticks)
             ax.set_xticklabels(labels)
             min_value = [np.min(result) if np.min(result) < min_value else min_value][0]
@@ -167,10 +177,13 @@ else:
     for ax in axes.flatten():
         ax.set_ylim((min_value, max_value))
     if not args.all_classes:
-        axes[-1, -1].legend(bbox_to_anchor=(0, -0.8), loc="lower left", ncol=4)
+        axes[-1, -1].legend(bbox_to_anchor=(0.08, -1.1), loc="lower left", ncol=4)
 
-    fig.suptitle('Integrated gradients - {}; {}; trials {}; steps {};'.format(*namespace.split('_')[:2], trials, steps),
-                 fontsize=15)
-    plt.tight_layout()
-    plt.show()
-    fig.savefig(os.path.join(output, 'integrads_{}_{}.png'.format(namespace, leap)))
+    #fig.suptitle('Integrated gradients - {}; {}; trials {}; steps {};'.format(*namespace.split('_')[:2], trials, steps),
+    #             fontsize=15)
+    fig.suptitle('Integrated gradients - Custom 1, zero baseline', fontsize=15)
+    #plt.tight_layout()
+    #plt.show()
+    figpath = os.path.join(output, 'integrads_{}_{}.png'.format(namespace, leap))
+    print('Plot saved to {}'.format(figpath))
+    fig.savefig(figpath)

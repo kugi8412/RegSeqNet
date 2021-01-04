@@ -134,9 +134,39 @@ with open(table, 'r') as f:
             for j, c in enumerate(colnum):
                 values[0][j].append([float(el) if el not in ['-', 'None', 'nan'] else np.nan for el in line[c].split(', ')])
 
+neurons = get_classes_names(param)
+colors = {}
+for n, c in zip(neurons, COLORS):
+    colors[n] = c
+if args.plot_one:
+    to_del = {}
+    for i, (stage, value) in enumerate(zip(stages, values)):
+        for j, c in enumerate(colnum):
+            y = [el[j] for el in value[j]]
+            if all([math.isnan(el) for el in y]):
+                to_del[j] = to_del.setdefault(j, []) + [i]
+    num_neurons = len(neurons)
+    for k, v in to_del.items():
+        if len(v) == len(stages):
+            for i in v:
+                dif_num_neurons = num_neurons - len(values[i])
+                del values[i][k - dif_num_neurons]
+                for el, vv in enumerate(values[i]):
+                    for la, _ in enumerate(vv):
+                        del values[i][el][la][k - dif_num_neurons]
+            dif_num_neurons = num_neurons - len(colnum)
+            if 'auc' in args.column:
+                del colnum[k - dif_num_neurons]
+            del neurons[k - dif_num_neurons]
+
 try:
     values = np.nan_to_num(values)
-    ylims = [np.min(values) - 0.05, np.max(values) + 0.05]
+    if 'auc' in args.column:
+        ylims = [0, 1]
+    else:
+        ylims = [1, 1.55]
+        #notzero_values = [el for el in values.flatten() if el != 0]
+        #ylims = [np.min(notzero_values) - 0.05, np.max(notzero_values) + 0.05]
 except ValueError:
     print('No values were read from the results file!')
     raise ValueError
@@ -145,27 +175,29 @@ except ValueError:
 def plot_one(ax, x, y, line, label, color):
     if not all([el == 0 for el in y]):
         ax.plot(x, y, line, label=label, alpha=0.5, color=color)
-        ax.set_xlabel('Epoch')
+        # ax.set_xlabel('Epoch')
         ax.set_ylim(*ylims)
 
 
-neurons = get_classes_names(param)
-
 if cv:
     colnum = colnum[:1]
-fig, axes = plt.subplots(nrows=len(colnum), ncols=len(stages), figsize=(12, 8), squeeze=False)
+fig, axes = plt.subplots(nrows=len(colnum), ncols=len(stages), figsize=(12, 8), squeeze=False, sharex=True, sharey=True)
 if axes.shape[1] > 1:
-    num_xticks = 10
+    num_xticks = 6
 else:
-    num_xticks = 20
+    num_xticks = 10
 for i, (stage, value) in enumerate(zip(stages, values)):  # for each stage
     if args.subset:
         title = STAGES[stage.replace('subset_', '')] + ' - subset'
     else:
         title = STAGES[stage]
     axes[0, i].set_title(title)
+    axes[-1, i].set_xlabel('Epoch')
     for j, c in enumerate(colnum):  # for each column
         a = axes[j][i]
+        for side in ['right', 'left', 'top', 'bottom']:
+            a.spines[side].set_visible(False)
+        a.set_facecolor('#E3E3E3')
         if boxplot:
             if cv:
                 y = [el[0] for el in value]
@@ -180,29 +212,76 @@ for i, (stage, value) in enumerate(zip(stages, values)):  # for each stage
                 color = 'black'
                 for n in neurons:
                     if n in header[c]:
-                        color = COLORS[neurons.index(n)]
-                a.set_ylabel(header[c].replace('-', '-\n'), color=color)
+                        color = colors[n]
+                if 'auc' in args.column and \
+                        (('gb-positive' in namespace and j == 0) or ('pa-da-positive' in namespace and j == 1)):
+                    ytitle = header[c].replace('-', '-\n') + '\n(GB specific sequences)'
+                elif 'auc' in args.column and \
+                        (('gb-positive' in namespace and j == 1) or ('pa-da-positive' in namespace and j == 0)):
+                        ytitle = header[c].replace('-', '-\n') + '\n(PA-DA specific sequences)'
+                else:
+                    ytitle = header[c].replace('-', '-\n')
+                a.set_ylabel(ytitle, color=color)
             if xticks:
                 a.set_xticks(epochs)
                 a.set_xticklabels(xticks)
             else:
-                a.set_xticks([el for el in np.arange(1, len(epochs), math.ceil(len(epochs)/num_xticks))] + [len(epochs)])
-            if len(value[j][0]) == len(neurons):  # check number of values for 1st epoch
+                xticks_prim = [1] + [el for el in np.arange(0, len(epochs), math.ceil(max(epochs)/num_xticks))][1:]
+                if 0 in epochs and len(epochs) - 1 not in xticks_prim:
+                    xticks_prim.append(len(epochs) - 1)
+                elif 0 not in epochs and len(epochs) not in xticks_prim:
+                    xticks_prim.append(len(epochs))
+                a.set_xticks(xticks_prim)
+            if value.shape[-1] == len(neurons):  # check number of values for 1st epoch
                 if args.plot_one:
                     y = [el[j] for el in value[j]]
-                    plot_one(a, epochs, y, '.', neurons[j], COLORS[j])
+                    plot_one(a, epochs, y, '.', neurons[j], colors[neurons[j]])
                 else:
                     for k, n in enumerate(neurons):  # for each neuron
                         y = [el[k] for el in value[j]]
-                        plot_one(a, epochs, y, '.', n, COLORS[k])
+                        plot_one(a, epochs, y, '.', n, colors[neurons[k]])
             elif len(value[j][0]) == 1:  # or for single values
                 plot_one(a, epochs, value[j], '.', 'general', COLORS[-1])
             if args.print_mean and len(value[j]) == len(neurons):
                 y = [mean(el) for el in value[j]]
                 plot_one(a, epochs, y, 'x', 'mean', COLORS[-2])
-
-fig.suptitle(namespace)
-#axes[-1][0].legend(bbox_to_anchor=(0, -0.07*(i+j+1)), loc="upper left", ncol=4)
+        a.set_yticklabels([str(el).rstrip('0').rstrip('.') if len(str(el)) < 4
+                           else str(round(el, 4)).rstrip('0').rstrip('.') for el in a.get_yticks()])
+        a.grid(True, color='white')
+if namespace in ['basset3{}'.format(i) for i in range(0, 5)]:
+    fig.suptitle('Basset {}'.format(int(namespace.split('3')[1]) + 1), fontsize=18)
+elif namespace in ['custom4{}'.format(i) for i in range(0, 5)]:
+    fig.suptitle('Custom {}'.format(int(namespace.split('4')[1]) + 1), fontsize=18)
+elif 'positive' in namespace:
+    if args.subset:
+        fig.suptitle('{} positive; specific subset (1561 out of {}000 sequences)'.format(namespace.split('-positive')[0].upper(),
+                                                           namespace.split('000-')[0].split('-')[-1]))
+    else:
+        fig.suptitle('{} positive; {}000 sequences'.format(namespace.split('-positive')[0].upper(), namespace.split('000-')[0].split('-')[-1]))
+else:
+    fig.suptitle(namespace, fontsize=18)
+plt.subplots_adjust(wspace=0.05)
+handles, labels = [], []
+for a in axes.flatten():
+    h, l = a.get_legend_handles_labels()
+    handles += h
+    labels += l
+if len(set(labels)) < len(labels):
+    handles_unique, labels_unique = [], []
+    for h, l in zip(handles, labels):
+        if l not in labels_unique:
+            handles_unique.append(h)
+            labels_unique.append(l)
+    handles = handles_unique
+    labels = labels_unique
+#fig.legend(handles, labels, loc='upper center')
+if 'loss' in header[c].lower():
+    axes[-1][0].legend(handles, labels, bbox_to_anchor=(1, -0.08), loc="upper center", ncol=4)
+else:
+    if not args.subset:
+        axes[-1][0].legend(handles, labels, bbox_to_anchor=(1, -0.37), loc="upper center", ncol=4)
+    else:
+        axes[-1][0].legend(handles, labels, bbox_to_anchor=(1, -0.17), loc="upper center", ncol=4)
 #axes[-1][0].legend(bbox_to_anchor=(0, -0.07), loc="upper left", ncol=4)
 plt.show()
 plotname = '-'.join([s.lower().replace('_', '') for s in stages]) + ':' + '-'.join([el.lower() for el in columns])

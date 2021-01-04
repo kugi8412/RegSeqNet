@@ -130,7 +130,7 @@ def plot_scatter(name):
     print('Plot saved to {}'.format(plot_file))
 
 
-def plot_boxplot(name):
+def get_outputs_and_snps(name, accuracy=False):
     outputs, labels, seq_ids, num_seqs, seq_file, name = load_data(name)
     label_names = ['' for _ in range(num_seqs)]
     patients = ['' for _ in range(num_seqs)]
@@ -144,31 +144,103 @@ def plot_boxplot(name):
                     id = '-'.join(list(np.array(l)[name_pos]))
                 else:
                     id = '{}_{}'.format(l[0].lstrip('chr'), l[1])
-                pos = seq_ids.index(id)
+                try:
+                    pos = seq_ids.index(id)
+                except ValueError:
+                    print('WARNING: sequence {} omitted'.format(id))
+                    continue
                 label_names[pos] = '{} {}'.format(l[3], l[4])
                 patients[pos] = id
-                snps[pos] = int(l[7].rstrip('SNPs'))
-    output_data, num_snps = [], []
-    for i, (label, n, nsnp) in enumerate(zip(labels, label_names, snps)):
-        output = outputs[label]
-        seq_pos = len([el for el in labels[:i] if el == label])
-        correct_out = output[label][seq_pos]
-        output_data.append(correct_out)
-        num_snps.append(nsnp)
-    num_boxes = 10
+                if l[6] != 'REF':
+                    snps[pos] = int(l[7].rstrip('SNPs'))
+    if not accuracy:
+        output_data, num_snps = [], []
+        for i, label in enumerate(labels):
+            output = outputs[label]
+            seq_pos = len([el for el in labels[:i] if el == label])
+            correct_out = output[label][seq_pos]
+            output_data.append(correct_out)
+        return output_data, snps
+    else:
+        accuracy = []
+        for i, label in enumerate(labels):
+            output = outputs[label]
+            seq_pos = len([el for el in labels[:i] if el == label])
+            if output[label][seq_pos] == max([el[seq_pos] for el in output]):
+                accuracy.append(1)
+            else:
+                accuracy.append(0)
+        return accuracy, snps
+
+
+def plot_boxplot(name):
+    output_data, num_snps = get_outputs_and_snps(name)
+    ref_output, ref_snps = get_outputs_and_snps(name.replace('-pos', '-ref').replace('-neg', '-ref'))
+    output_data += ref_output
+    num_snps += ref_snps
+    num_boxes = 7
     box_size = max(num_snps) // (num_boxes - 1)
     nsnp_range = [[0, 0], [1, box_size]] + [[i*box_size+1, (i+1)*box_size] for i in range(1, num_boxes-2)] + \
-                 [(num_boxes-1)*box_size, np.inf]
-    y_values = [[el for el, la in zip(output_data, num_snps) if v1 <= la < v2]
-                for v1, v2 in nsnp_range]
-    x_ticks = [str(el[0]) if el[1] == el[0] or el[1] == np.inf else '{}-{}'.format(el[0], el[1]) for el in nsnp_range]
+                 [[(num_boxes-1)*box_size, np.inf]]
+    y_values = [[el for el, la in zip(output_data, num_snps) if v1 <= la <= v2]
+                for (v1, v2) in nsnp_range]
+    x_ticks = [str(el[0]) if el[1] == el[0] else '>={}'.format(el[0]) if el[1] == np.inf
+               else '{}-{}'.format(el[0], el[1]) for el in nsnp_range]
+    print(len(num_snps))
+    #plt.hist(num_snps, bins=[0, 1, 2, 3, 4, 5, 50, 100])
     plt.boxplot(y_values)
-    plt.xticks(x_ticks)
+    plt.xticks(range(1, len(x_ticks)+1), x_ticks)
+    plt.ylabel('Output from a true neuron')
+    if '-pos' in name:
+        plt.title('Patient-specific: reference + positive examples')
+    elif '-neg' in name:
+        plt.title('Patient-specific: reference + negative examples')
     plt.show()
 
 
-def plot_barplot(name):
-    return 0
+def plot_barplot(name, num_boxes=None, ref=False):
+    from statistics import mean
+    accuracy, num_snps = get_outputs_and_snps(name, accuracy=True)
+    if ref:
+        ref_accuracy, ref_snps = get_outputs_and_snps(name.replace('-pos', '-ref').replace('-neg', '-ref'))
+        accuracy += ref_accuracy
+        num_snps += ref_snps
+        nsnp_range = [[0, 0]]
+    else:
+        nsnp_range = []
+    if num_boxes is None:
+        nsnp_range += [[1, 1], [2, 2], [3, 3], [4, 4], [5, 10], [11, np.inf]]
+        n_seqs = [len([el for el in num_snps if v1 <= el <= v2]) for (v1, v2) in nsnp_range]
+        widths = [el*0.001 for el in n_seqs]
+        widths_prim = [sum(widths[:i]) if i > 0 else 0 for i in range(len(widths))]
+        gap_width = 0.1 * widths[0]
+        x_values = [el+la/2+i*gap_width for i, (el, la) in enumerate(zip(widths_prim, widths))]
+    else:
+        box_size = max(num_snps) // (num_boxes - 1)
+        nsnp_range += [[1, box_size]] + [[i * box_size + 1, (i + 1) * box_size] for i in range(1, num_boxes - 2)] + \
+                      [[(num_boxes - 1) * box_size, np.inf]]
+        x_values = range(1, len(nsnp_range) + 1)
+        widths = 0.8
+    y_values = [mean(selected) if len(selected) > 0 else 0 for selected in
+                [[el for el, la in zip(accuracy, num_snps) if v1 <= la <= v2] for (v1, v2) in nsnp_range]]
+    x_ticks = [str(el[0]) if el[1] == el[0] else '>={}'.format(el[0]) if el[1] == np.inf
+               else '{}-{}'.format(el[0], el[1]) for el in nsnp_range]
+    plt.bar(x_values, y_values, width=widths)
+    if num_boxes is None:
+        for x, y, text in zip(x_values, y_values, n_seqs):
+            plt.text(x, y+0.01, text, ha='center')
+    plt.xticks(x_values, x_ticks, rotation=45, ha='right')
+    plt.ylim(0, 1)
+    plt.ylabel('Accuracy')
+    plt.xlabel('Number of SNPs')
+    if '-pos' in name:
+        title = 'Patient-specific: positive examples'
+    elif '-neg' in name:
+        title = 'Patient-specific: negative examples'
+    if ref:
+        title += ' + reference'
+    plt.title(title)
+    plt.show()
 
 
 for name in args.name:

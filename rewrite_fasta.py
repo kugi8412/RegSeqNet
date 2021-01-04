@@ -4,7 +4,6 @@ import numpy as np
 
 
 def rewrite_fasta(file, outdir=None, name_pos=None):
-    name_pos = [int(el) for el in name_pos]
     # check if there is more than one sequence in the given file
     with open(file, 'r') as f:
         i = 0
@@ -31,6 +30,7 @@ def rewrite_fasta(file, outdir=None, name_pos=None):
             for line in f:
                 if line.startswith('>'):
                     if name_pos is not None:
+                        name_pos = [int(el) for el in name_pos]
                         filename = '-'.join([str(la) for la in np.array(line.strip('> \n').split(' '))[name_pos]]) + '.fasta'
                     else:
                         filename = '-'.join(line.strip('> \n').split(' ')[:2]).strip('chr ') + '.fasta'
