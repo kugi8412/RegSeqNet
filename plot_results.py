@@ -213,10 +213,10 @@ for i, (stage, value) in enumerate(zip(stages, values)):  # for each stage
                 for n in neurons:
                     if n in header[c]:
                         color = colors[n]
-                if 'auc' in args.column and \
+                if 'auc' in args.column and (args.subset or '1561' in namespace) and \
                         (('gb-positive' in namespace and j == 0) or ('pa-da-positive' in namespace and j == 1)):
                     ytitle = header[c].replace('-', '-\n') + '\n(GB specific sequences)'
-                elif 'auc' in args.column and \
+                elif 'auc' in args.column and (args.subset or '1561' in namespace) and \
                         (('gb-positive' in namespace and j == 1) or ('pa-da-positive' in namespace and j == 0)):
                         ytitle = header[c].replace('-', '-\n') + '\n(PA-DA specific sequences)'
                 else:
@@ -257,7 +257,15 @@ elif 'positive' in namespace:
         fig.suptitle('{} positive; specific subset (1561 out of {}000 sequences)'.format(namespace.split('-positive')[0].upper(),
                                                            namespace.split('000-')[0].split('-')[-1]))
     else:
-        fig.suptitle('{} positive; {}000 sequences'.format(namespace.split('-positive')[0].upper(), namespace.split('000-')[0].split('-')[-1]))
+        if '000-' in namespace:
+            fig.suptitle('{} positive; {}000 sequences'.format(namespace.split('-positive')[0].upper(),
+                                                               namespace.split('000-')[0].split('-')[-1]))
+        elif '000' in namespace:
+            fig.suptitle('{} positive; {}000 sequences'.format(namespace.split('-positive')[0].upper(),
+                                                               namespace.split('000')[0].split('-')[-1]))
+        else:
+            fig.suptitle('{} positive; {} sequences'.format(namespace.split('-positive')[0].upper(),
+                                                            namespace.split('-')[-1]))
 else:
     fig.suptitle(namespace, fontsize=18)
 plt.subplots_adjust(wspace=0.05)

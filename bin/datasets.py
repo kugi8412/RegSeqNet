@@ -27,6 +27,13 @@ class SeqsDataset(Dataset):
             for file in [el for el in data if el.endswith((filetype, packedtype))]:
                 _, path = rewrite_fasta(file, name_pos=name_pos)
                 data[data.index(file)] = path
+        elif isinstance(data, list) and all([not os.path.isdir(el) for el in data]) and \
+                all([os.path.isfile(el + '.{}'.format(filetype)) or
+                     os.path.isfile(el + '.{}'.format(packedtype)) for el in data]):
+            for file in [ba + '.{}'.format(filetype) if os.path.isfile(ba + '.{}'.format(filetype))
+                         else ba + '.{}'.format(packedtype) for ba in data]:
+                _, path = rewrite_fasta(file, name_pos=name_pos)
+                data[data.index(file.replace('.{}'.format(filetype), '').replace('.{}'.format(packedtype), ''))] = path
         else:
             fs = [la for la in [os.path.join(dd, el) for dd in data for el in os.listdir(dd)] if la.endswith(packedtype)]
             if fs:

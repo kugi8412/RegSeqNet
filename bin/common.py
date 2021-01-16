@@ -533,10 +533,15 @@ def print_results_log(logger, stage_desc, classes, stage_sens, stage_spec, stage
     for i, (cl, sens, spec, auc) in enumerate(zip(classes, stage_sens, stage_spec, stage_auc)):
         logger.info(
             '{:>20} :{:>5} seqs - {:1.3f}, {:1.3f}, {:1.3f}'.format(cl, len(class_stage[cl]), sens, spec, auc[i]))
+    means = []
+    for stage_result in [stage_sens, stage_spec, [el[i] for i, el in enumerate(stage_auc) if not np.isnan(el[i])]]:
+        if stage_result:
+            means.append(mean(stage_result))
+        else:
+            means.append(np.nan)
     logger.info(
         "--{:>18s} : {:1.3f}, {:1.3f}, {:1.3f}{:>12}\n".
-            format('MEANS', *list(map(mean, [stage_sens, stage_spec,
-                                             [el[i] for i, el in enumerate(stage_auc) if not np.isnan(el[i])]])), "--"))
+            format('MEANS', *means, "--"))
 
 '''def print_results(logger, columns, variables, epoch):
     logger.info("Epoch {} finished in {:.2f} min\nTrain loss: {:1.3f}\n{:>35s}{:.5s}, {:.5s}"
