@@ -1,6 +1,6 @@
 import argparse
 import os
-import numpy as np
+from bin.common import get_seq_id
 
 
 def rewrite_fasta(file, outdir=None, name_pos=None):
@@ -29,11 +29,7 @@ def rewrite_fasta(file, outdir=None, name_pos=None):
         with open(file, 'r') as f:
             for line in f:
                 if line.startswith('>'):
-                    if name_pos is not None:
-                        name_pos = [int(el) for el in name_pos]
-                        filename = '-'.join([str(la) for la in np.array(line.strip('> \n').split(' '))[name_pos]]) + '.fasta'
-                    else:
-                        filename = '-'.join(line.strip('> \n').split(' ')[:2]).strip('chr ') + '.fasta'
+                    filename = get_seq_id(line, name_pos) + '.fasta'
                     w = open(os.path.join(outdir, filename), 'w')
                     w.write(line)
                     i += 1

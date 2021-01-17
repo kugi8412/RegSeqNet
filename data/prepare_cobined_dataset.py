@@ -41,7 +41,7 @@ loc.columns = ['chr', 'start', 'end', 'idk', 'strand', 'gene']
 loc.drop('idk', axis=1, inplace=True)
 loc = loc[~loc.duplicated(['chr', 'start'], keep='first')]
 
-for num_seqs in [20000]:
+for num_seqs in [40000]:
     seqs_per_class = int(num_seqs / 4)
     print('Group {}, seqs per class {}'.format(num_seqs, seqs_per_class))
     new_file = 'patient_specific_thresh2_{}.fasta'.format(num_seqs)
@@ -61,6 +61,7 @@ for num_seqs in [20000]:
         for i, record in enumerate(SeqIO.parse(input_file, "fasta")):
             if i in subset:
                 header = record.description.strip().split(' ')
+                idd = '{}:{}'.format(header[0].lstrip('chr'), header[1])
                 '''toheader = None
                 loc_clip = loc[(loc['chr'] == header[0]) & (loc['start'] > int(header[1]) - 1500) &
                                (loc['end'] < int(header[1]) + 1500)]
@@ -76,6 +77,6 @@ for num_seqs in [20000]:
                               (loc['end'] < int(header[1]) + 50000)])
                     raise ValueError
                 w.write('>{} {}\n{}\n'.format(record.description, toheader, record.seq))'''
-                w.write('>{} NN REF\n{}\n'.format(record.description, record.seq))
+                w.write('>{} {} REF\n{}\n'.format(record.description, idd, record.seq))
     print(new_file)
     w.close()

@@ -250,9 +250,15 @@ if args.check_the_subset is not None:
         if not os.path.isfile(names_file):
             names_dir, _ = os.path.split(data_dir[0])
             names_file = os.path.join(names_dir, names_file)
-        with open(names_file, 'r') as f:
-            subset_ids += f.read().strip().split('\n')
-            logger.info('Check the subset: sequences names read from {}'.format(names_file))
+        if names_file.endswith(('fasta', 'fa')):
+            with open(names_file, 'r') as f:
+                for line in f:
+                    if line.startswith('>'):
+                        subset_ids.append(get_seq_id(line, args.name_pos))
+        else:
+            with open(names_file, 'r') as f:
+                subset_ids += f.read().strip().split('\n')
+        logger.info('Check the subset: sequences names read from {}'.format(names_file))
     subset_ids = set(subset_ids)
     logger.info('Read {} sequences to check'.format(len(subset_ids)))
     subset_indices = dataset.get_indices(subset_ids)

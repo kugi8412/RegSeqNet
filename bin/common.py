@@ -543,6 +543,15 @@ def print_results_log(logger, stage_desc, classes, stage_sens, stage_spec, stage
         "--{:>18s} : {:1.3f}, {:1.3f}, {:1.3f}{:>12}\n".
             format('MEANS', *means, "--"))
 
+
+def get_seq_id(line, name_pos):
+    if name_pos is not None:
+        name_pos = [int(el) for el in name_pos]
+        seq_id = '-'.join([str(la) for la in np.array(line.strip('> \n').split(' '))[name_pos]])
+    else:
+        seq_id = '-'.join(line.strip('> \n').split(' ')[:2]).strip('chr ')
+    return seq_id
+
 '''def print_results(logger, columns, variables, epoch):
     logger.info("Epoch {} finished in {:.2f} min\nTrain loss: {:1.3f}\n{:>35s}{:.5s}, {:.5s}"
                 .format(epoch + 1, (time() - t0) / 60, train_loss_reduced, '', 'SENSITIVITY', 'SPECIFICITY'))

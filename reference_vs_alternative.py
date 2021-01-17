@@ -52,12 +52,8 @@ def plot_scatter(name):
         with open(seq_file, 'r') as f:
             for line in f:
                 if line.startswith('>'):
+                    id = get_seq_id(line, args.name_pos)
                     l = line.strip('>\n ').split(' ')
-                    if args.name_pos is not None:
-                        name_pos = [int(el) for el in args.name_pos]
-                        id = '-'.join(list(np.array(l)[name_pos]))
-                    else:
-                        id = '{}_{}'.format(l[0].lstrip('chr'), l[1])
                     pos = seq_ids.index(id)
                     label_names[pos] = '{} {}'.format(l[3], l[4])
                     patients[pos] = id
@@ -139,11 +135,7 @@ def get_outputs_and_snps(name, accuracy=False):
         for line in f:
             if line.startswith('>'):
                 l = line.strip('>\n ').split(' ')
-                if args.name_pos is not None:
-                    name_pos = [int(el) for el in args.name_pos]
-                    id = '-'.join(list(np.array(l)[name_pos]))
-                else:
-                    id = '{}_{}'.format(l[0].lstrip('chr'), l[1])
+                id = get_seq_id(line, args.name_pos)
                 try:
                     pos = seq_ids.index(id)
                 except ValueError:
