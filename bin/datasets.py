@@ -121,6 +121,7 @@ class SeqsDataset(Dataset):
         except ValueError:
             ID = index
         filename = os.path.join(self.dirs[self.locs[ID]], '{}.{}'.format(ID, self.filetype))
+        seq = ''
         with open(filename, 'r') as file:
             for line in file:
                 if line.startswith('>'):
@@ -140,6 +141,7 @@ class SeqsDataset(Dataset):
                     break
             if file.readline().strip():
                 warn('In file {} is more than one sequence!'.format(filename))
+        assert seq, 'No sequence found in {}'.format(filename)
         if self.constant_class is not None:
             label = self.constant_class
         encoded_seq = self.encoder(seq, info=info)

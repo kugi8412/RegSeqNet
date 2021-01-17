@@ -247,6 +247,7 @@ logger.info('\nTraining and validation datasets built in {:.2f} s'.format(time()
 if args.check_the_subset is not None:
     subset_ids = []
     for names_file in args.check_the_subset:
+        logger.info('Check the subset: reading sequences names from {}'.format(names_file))
         if not os.path.isfile(names_file):
             names_dir, _ = os.path.split(data_dir[0])
             names_file = os.path.join(names_dir, names_file)
@@ -258,7 +259,6 @@ if args.check_the_subset is not None:
         else:
             with open(names_file, 'r') as f:
                 subset_ids += f.read().strip().split('\n')
-        logger.info('Check the subset: sequences names read from {}'.format(names_file))
     subset_ids = set(subset_ids)
     logger.info('Read {} sequences to check'.format(len(subset_ids)))
     subset_indices = dataset.get_indices(subset_ids)

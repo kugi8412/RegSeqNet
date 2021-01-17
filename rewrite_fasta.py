@@ -26,9 +26,12 @@ def rewrite_fasta(file, outdir=None, name_pos=None):
         num_files = 0
     if num_files == 0:
         i = 0
+        sequence_written = True
         with open(file, 'r') as f:
             for line in f:
                 if line.startswith('>'):
+                    assert sequence_written, 'No sequence written for {}'.format(filename)
+                    sequence_written = False
                     filename = get_seq_id(line, name_pos) + '.fasta'
                     w = open(os.path.join(outdir, filename), 'w')
                     w.write(line)
@@ -36,6 +39,8 @@ def rewrite_fasta(file, outdir=None, name_pos=None):
                 else:
                     w.write(line)
                     w.close()
+                    sequence_written = True
+        assert sequence_written, 'No sequence written for {}'.format(filename)
         print('Based on {} {} sequences were written into separated files in {}'.format(file, i, outdir))
         return i, outdir
     else:
