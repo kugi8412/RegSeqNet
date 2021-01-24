@@ -218,6 +218,8 @@ def basic_params(parser, param=False):
                         help='Output directory, default: [PATH]/results/[NAMESPACE]')
     parser.add_argument('--seed', action='store', metavar='NUMBER', type=int, default='0',
                         help='Set random seed, default: 0')
+    parser.add_argument('--name_pos', action='store', metavar='INT', nargs='+', default=None,
+                        help='Position(s) of sequence name in the fasta header, by default created as CHR:POSITION')
     if param:
         parser.add_argument('--param', action='store', metavar='NAME', type=str, default=None,
                             help='File with parameters of the network, from which results should be plotted, ' +

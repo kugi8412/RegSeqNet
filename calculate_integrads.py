@@ -68,7 +68,7 @@ use_cuda, device = check_cuda(None)
 network, _, seq_len, _, classes, analysis_name, num_epochs = params_from_file(param_file)
 trials = args.trials
 
-dataset = SeqsDataset(seq_file, seq_len=seq_len)
+dataset = SeqsDataset(seq_file, seq_len=seq_len, name_pos=args.name_pos)
 assert classes == dataset.classes, 'List of classes is inconsistent'
 seq_ids = dataset.IDs
 seq_desc = []

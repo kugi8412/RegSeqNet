@@ -41,7 +41,7 @@ loc.columns = ['chr', 'start', 'end', 'idk', 'strand', 'gene']
 loc.drop('idk', axis=1, inplace=True)
 loc = loc[~loc.duplicated(['chr', 'start'], keep='first')]
 
-for num_seqs in [40000]:
+for num_seqs in [20000, 40000]:
     seqs_per_class = int(num_seqs / 4)
     print('Group {}, seqs per class {}'.format(num_seqs, seqs_per_class))
     new_file = 'patient_specific_thresh2_{}.fasta'.format(num_seqs)

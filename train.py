@@ -107,8 +107,6 @@ parser.add_argument('--dropout', action='store', metavar='FLOAT', type=float, de
 parser.add_argument('--check_the_subset', action='store', metavar='FILE', type=str, nargs='+', default=None,
                     help='File with list of IDs of sequences that should be used for additional validation '
                          'during training')
-parser.add_argument('--name_pos', action='store', metavar='INT', nargs='+', default=None,
-                    help='Position(s) of sequence name in the fasta header, by default created as CHR:POSITION')
 args = parser.parse_args()
 
 batch_size, num_workers, num_epochs, acc_threshold, seq_len = args.batch_size, args.num_workers, args.num_epochs, \
