@@ -108,7 +108,7 @@ def produce_patient_specific_baseline_and_query(promoter_id,
     query_file = os.path.join(working_dir, 'patient-specific_{}_neg.fasta'.format(promoter_id))
     with open(query_file, 'w') as f:
         for seq in query_seqs:
-            f.write('>{}\n{}\n'.format(record.description, record.seq))
+            f.write('>{}\n{}\n'.format(seq.description, seq.seq))
     print('Patient-specific query for {}, num seqs {}, was written into {}'.format(promoter_id, len(query_seqs), query_file))
 
     return baseline_file, query_file

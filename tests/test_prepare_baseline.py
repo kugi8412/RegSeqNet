@@ -30,6 +30,7 @@ def test_patient_specific_extreme_seqs():
     for name, files in created_sets.items():
         command = 'python calculate_integrads.py {} --path /home/marni/magisterka ' \
                   '--model patient_specific_thresh2_40000_last.model --baseline {} ' \
-                  '--namespace patient_specific_thresh2_40000'.format(files[1], files[0])
+                  '--namespace patient_specific_thresh2_40000 --name_pos 5 6 ' \
+                  '--integrads_name integrads_patient-specific_{}'.format(files[1], files[0], name)
         print('Command for {}\n{}'.format(name, command))
 

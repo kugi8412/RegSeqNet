@@ -22,6 +22,8 @@ parser.add_argument('--steps', action='store', metavar='NUM', type=int, default=
                     help='Number of steps for each trial, default = 50.')
 parser.add_argument('--all_classes', action='store_true',
                     help='Calculate gradients for all neurons (by default only output for the real label is calculated)')
+parser.add_argument('--integrads_name', action='store', metavar='NAME', type=str, default=None,
+                    help='Alternative name for the output directory')
 parser = basic_params(parser, param=True)
 args = parser.parse_args()
 
@@ -114,11 +116,14 @@ else:
     _, baseline_name = os.path.split(baseline_mode)
     baseline_name, _ = os.path.splitext(baseline_name)
 
-integrads_name = 'integrads_{}_{}_{}_{}-{}'.format(analysis_name,
-                                                   seq_name.replace('_', '-'),
-                                                   baseline_name.replace('_', '-'),
-                                                   trials,
-                                                   args.steps)
+if args.integrads_name is not None:
+    integrads_name = args.integrads_name
+else:
+    integrads_name = 'integrads_{}_{}_{}_{}-{}'.format(analysis_name,
+                                                       seq_name.replace('_', '-'),
+                                                       baseline_name.replace('_', '-'),
+                                                       trials,
+                                                       args.steps)
 outdir = os.path.join(output, integrads_name)
 if os.path.isdir(outdir):
     warnings.warn('\nAnalysis in {} already exists, it will be overwritten'.format(outdir))
