@@ -43,8 +43,7 @@ seqs = {}
 with open(seq_file, 'r') as f:
     for line in f:
         if line.startswith('>'):
-            l = line.strip().split(' ')
-            seq_id = '{}:{}'.format(l[1].lstrip('chr'), l[2])
+            seq_id = get_seq_id(line, args.name_pos)
         else:
             seqs[seq_id] = line.strip()
 seqs = [seqs[el] for el in seq_ids]

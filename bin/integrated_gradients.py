@@ -17,7 +17,9 @@ def integrated_gradients(model, inputs, labels, baseline=None, num_trials=10, st
                 base[j] = torch.tensor(encoder(seq))
         elif type(baseline) is np.ndarray:
             base = torch.from_numpy(baseline[i]).reshape(inputs.shape)
-        scaled_inputs = [base + (float(i) / steps) * (inputs - base) for i in range(1, steps + 1)]
+        # s = (inputs - base)[0, 0]
+        # ss = [el for el in s.flatten() if el != 0]
+        scaled_inputs = [base + (float(j) / steps) * (inputs - base) for j in range(1, steps + 1)]
         grads = calculate_gradients(model, scaled_inputs, labels, use_cuda=use_cuda)
         avg_grads = np.average(grads[:-1], axis=0)
         integrated_grad = (inputs - base) * torch.tensor(avg_grads)

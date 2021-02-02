@@ -1,9 +1,10 @@
 import argparse
 import os
 from bin.common import get_seq_id
+import shutil
 
 
-def rewrite_fasta(file, outdir=None, name_pos=None):
+def rewrite_fasta(file, outdir=None, name_pos=None, force=False):
     # check if there is more than one sequence in the given file
     with open(file, 'r') as f:
         i = 0
@@ -14,14 +15,17 @@ def rewrite_fasta(file, outdir=None, name_pos=None):
             line = f.readline()
         if i == 1:
             print('No rewriting was done: given file contains only one sequence.')
-            return 1, None
+            return 1, file
     if outdir is None:
         outdir, name = os.path.split(file)
         namespace, _ = os.path.splitext(name)
         outdir = os.path.join(outdir, namespace)
     if os.path.isdir(outdir):
         num_files = len([el for el in os.listdir(outdir) if el.endswith('.fasta')])
-    else:
+    if force or not os.path.isdir(outdir):
+        if os.path.isdir(outdir):
+            shutil.rmtree(outdir)
+            print('Forced to remove directory {} with {} fasta files'.format(outdir, num_files))
         os.mkdir(outdir)
         num_files = 0
     if num_files == 0:

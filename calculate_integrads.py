@@ -5,6 +5,7 @@ import torch
 from time import time
 from bin.integrated_gradients import integrated_gradients
 import warnings
+from Bio import SeqIO
 
 parser = argparse.ArgumentParser(description='Calculate integrated gradients based on given sequences and '
                                              'network')
@@ -14,7 +15,7 @@ parser.add_argument('--model', action='store', metavar='NAME', type=str, default
                     help='File with the model to check, if PATH is given, model is supposed to be in PATH directory, '
                          'if NAMESPACE is given model is supposed to be in [PATH]/results/[NAMESPACE]/ directory')
 parser.add_argument('--baseline', action='store', metavar='DATA', type=str, default=None,
-                    help='Baseline for calculating integrated gradients: None/fixed, random, zeros or npy file. '
+                    help='Baseline for calculating integrated gradients: None/fixed, random, zeros or npy/fasta file. '
                          'By default is None - random baseline, the same for all sequences, is used')
 parser.add_argument('--trials', action='store', metavar='NUM', type=int, default=10,
                     help='Number of trials for calculating integrated gradients, default = 10.')
@@ -84,7 +85,10 @@ for i in range(1, len(dataset)):
     X.append(xx)
     labels.append(yy)
 X = torch.stack(X, dim=0)
+num_seqs_query = X.shape[0]
 
+
+save_baseline = False
 if args.baseline is None or args.baseline == 'fixed':
     from bin.common import OHEncoder
     import random
@@ -99,6 +103,7 @@ if args.baseline is None or args.baseline == 'fixed':
     base = np.stack(base)
     baseline_file = '{}_baseline.npy'.format(seq_name.replace('_', '-'))
     baseline_name = 'fixed'
+    save_baseline = True
 elif args.baseline == 'random':
     base = None
     baseline_mode = baseline_name = 'random'
@@ -108,13 +113,28 @@ elif args.baseline == 'zeros':
     baseline_mode = baseline_name = 'zeros'
     print('Baseline set to zero array')
 else:
-    base = np.load(args.baseline, allow_pickle=True)
-    trials = base.shape[0]
-    assert base.shape[1] == X.shape[0], 'Baseline shape: {}, Seqs shape: {}'.format(base.shape, X.shape)
-    print('Baseline loaded from {}, number of trials: {}'.format(args.baseline, trials))
     baseline_mode = args.baseline
     _, baseline_name = os.path.split(baseline_mode)
     baseline_name, _ = os.path.splitext(baseline_name)
+    if args.baseline.endswith('npy'):
+        base = np.load(args.baseline, allow_pickle=True)
+        assert base.shape[1] == num_seqs_query, 'Baseline shape: {}, Seqs shape: {}'.format(base.shape, X.shape)
+        print('Baseline loaded from {}, size: {}'.format(args.baseline, base.shape))
+    elif args.baseline.endswith('fasta'):
+        base_seqs = []
+        for record in SeqIO.parse(args.baseline, "fasta"):
+            base_seqs.append(str(record.seq))
+        encoder = OHEncoder()
+        b = np.stack([np.array(encoder(seq.upper())) for seq in base_seqs], axis=0)
+        base = np.stack([b for _ in range(num_seqs_query)], axis=1)
+        n = len(base_seqs)
+        baseline_name = '{}_{}-{}_baseline'.format(baseline_name, num_seqs_query, n)
+        baseline_file = baseline_name + '.npy'
+        save_baseline = True
+        print('Baseline created from {}, size: {}'.format(args.baseline, base.shape))
+    else:
+        raise Exception('Unknown baseline mode: {}'.format(args.baseline))
+    trials = base.shape[0]
 
 if args.integrads_name is not None:
     integrads_name = args.integrads_name
@@ -131,12 +151,11 @@ if os.path.isdir(outdir):
     shutil.rmtree(outdir)
 os.mkdir(outdir)
 
-if args.baseline is None:
+if save_baseline:
     baseline_file = os.path.join(outdir, baseline_file)
     np.save(baseline_file, base)
-    print('Random baseline was written into {}'.format(baseline_file))
+    print('Baseline was written into {}'.format(baseline_file))
     baseline_mode = baseline_file
-
 
 t0 = time()
 # Build network

@@ -107,6 +107,8 @@ parser.add_argument('--dropout', action='store', metavar='FLOAT', type=float, de
 parser.add_argument('--check_the_subset', action='store', metavar='FILE', type=str, nargs='+', default=None,
                     help='File with list of IDs of sequences that should be used for additional validation '
                          'during training')
+parser.add_argument('--force', action='store_true',
+                    help='Force rewritting of input dataset(s) even if a directory with the sequences already exists')
 args = parser.parse_args()
 
 batch_size, num_workers, num_epochs, acc_threshold, seq_len = args.batch_size, args.num_workers, args.num_epochs, \
@@ -167,7 +169,8 @@ t0 = time()
 # CUDA for PyTorch
 use_cuda, device = check_cuda(logger)
 
-dataset = SeqsDataset(data_dir, seq_len=seq_len, constant_class=args.constant_class, name_pos=args.name_pos)
+dataset = SeqsDataset(data_dir, seq_len=seq_len, constant_class=args.constant_class, name_pos=args.name_pos,
+                      force=args.force)
 num_classes = dataset.num_classes
 classes = dataset.classes
 

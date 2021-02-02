@@ -253,19 +253,42 @@ if namespace in ['basset3{}'.format(i) for i in range(0, 5)]:
 elif namespace in ['custom4{}'.format(i) for i in range(0, 5)]:
     fig.suptitle('Custom {}'.format(int(namespace.split('4')[1]) + 1), fontsize=18)
 elif 'positive' in namespace:
-    if args.subset:
-        fig.suptitle('{} positive; specific subset (1561 out of {}000 sequences)'.format(namespace.split('-positive')[0].upper(),
-                                                           namespace.split('000-')[0].split('-')[-1]))
+    if '1561' in namespace:
+        network_number = 1
+        num_seqs = 1561
+    elif '6000' in namespace:
+        network_number = 2
+        num_seqs = 6000
+    elif '10000' in namespace:
+        network_number = 3
+        num_seqs = 10000
     else:
-        if '000-' in namespace:
-            fig.suptitle('{} positive; {}000 sequences'.format(namespace.split('-positive')[0].upper(),
-                                                               namespace.split('000-')[0].split('-')[-1]))
-        elif '000' in namespace:
-            fig.suptitle('{} positive; {}000 sequences'.format(namespace.split('-positive')[0].upper(),
-                                                               namespace.split('000')[0].split('-')[-1]))
-        else:
-            fig.suptitle('{} positive; {} sequences'.format(namespace.split('-positive')[0].upper(),
-                                                            namespace.split('-')[-1]))
+        network_number = ''
+        num_seqs = namespace.split('_')[-1]
+    grade_group = namespace.split('-positive')[0].upper()
+    if args.subset:
+        fig.suptitle('{}-positive {}; specific subset (1561 out of {} sequences)'.
+                     format(grade_group, network_number, num_seqs))
+    else:
+        fig.suptitle('{}-positive {}; {} sequences'.format(grade_group, network_number, num_seqs))
+
+elif 'patient' in namespace and 'specific' in namespace:
+    if '7842' in namespace:
+        network_number = 1
+        num_seqs = 7842
+    elif '20000' in namespace:
+        network_number = 2
+        num_seqs = 20000
+    elif '40000' in namespace:
+        network_number = 3
+        num_seqs = 40000
+    else:
+        network_number = ''
+        num_seqs = namespace.split('_')[-1]
+    if args.subset:
+        fig.suptitle('Patient-specific {}; specific subset (7842 out of {} sequences)'.format(network_number, num_seqs))
+    else:
+        fig.suptitle('Patient-specific {}; {} sequences'.format(network_number, num_seqs))
 else:
     fig.suptitle(namespace, fontsize=18)
 plt.subplots_adjust(wspace=0.05)
@@ -286,10 +309,10 @@ if len(set(labels)) < len(labels):
 if 'loss' in header[c].lower():
     axes[-1][0].legend(handles, labels, bbox_to_anchor=(1, -0.08), loc="upper center", ncol=4)
 else:
-    if not args.subset:
-        axes[-1][0].legend(handles, labels, bbox_to_anchor=(1, -0.37), loc="upper center", ncol=4)
-    else:
+    if args.subset or '7842' in namespace or '1561' in namespace:
         axes[-1][0].legend(handles, labels, bbox_to_anchor=(1, -0.17), loc="upper center", ncol=4)
+    else:
+        axes[-1][0].legend(handles, labels, bbox_to_anchor=(1, -0.37), loc="upper center", ncol=4)
 #axes[-1][0].legend(bbox_to_anchor=(0, -0.07), loc="upper left", ncol=4)
 plt.show()
 plotname = '-'.join([s.lower().replace('_', '') for s in stages]) + ':' + '-'.join([el.lower() for el in columns])

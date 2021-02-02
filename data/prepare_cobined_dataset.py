@@ -2,12 +2,13 @@ import random
 import os
 from Bio import SeqIO
 import pandas as pd
-import math
 
 path = '/home/marni/magisterka/data/patient_specific'
 common_path = '/home/marni/magisterka/data'
 ref_model = 'custom40'
-seq_files = ['patient_specific_thresh2_pos_subset.fasta', 'patient_specific_thresh2_neg_subset.fasta',
+# seq_files = ['patient_specific_thresh2_pos_subset.fasta', 'patient_specific_thresh2_neg_subset.fasta',
+#              'patient_specific_thresh2_ref_subset.fasta']
+seq_files = ['patient_specific_thresh2_pos_subset.fasta', 'patient-specific_thresh2_neg_subset_x9.fasta',
              'patient_specific_thresh2_ref_subset.fasta']
 
 # Establish reference seqs - valid and test from custom40
@@ -41,12 +42,14 @@ loc.columns = ['chr', 'start', 'end', 'idk', 'strand', 'gene']
 loc.drop('idk', axis=1, inplace=True)
 loc = loc[~loc.duplicated(['chr', 'start'], keep='first')]
 
-for num_seqs in [20000, 40000]:
+for num_seqs in [32000, 40000]:
     seqs_per_class = int(num_seqs / 4)
     print('Group {}, seqs per class {}'.format(num_seqs, seqs_per_class))
-    new_file = 'patient_specific_thresh2_{}.fasta'.format(num_seqs)
+    # new_file = 'patient_specific_thresh2_{}.fasta'.format(num_seqs)
+    new_file = 'patient-specific_thresh2_negx9_{}.fasta'.format(num_seqs)
     w = open(os.path.join(path, new_file), 'w')
     w.write(towrite)
+    # subset_seqs = open('/home/marni/magisterka/results/custom40/custom40_train.txt', 'r').read().strip().split('\n')
     for group, already_seqs in classes.items():
         input_file = "/home/marni/magisterka/data/dataset3/{}_10000.fa".format(group.replace(' ', '_'))
         todraw = []
