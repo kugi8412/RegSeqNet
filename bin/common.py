@@ -9,6 +9,7 @@ NET_TYPES = {
     'basset': BassetNetwork,
     'custom': CustomNetwork,
     'test': TestNetwork,
+    'dropout': DropoutNetwork,
     'random-forest': 'RandomForest'
 }
 
