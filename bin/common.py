@@ -32,6 +32,7 @@ PARAMS = OrderedDict({
     'Learning rate': 'lr',
     'Adjusting lr': 'adjust_lr',
     'Weight decay': 'weight_decay',
+    'Momentum': 'momentum',
     'Retraining': 'modelfile'
 })
 

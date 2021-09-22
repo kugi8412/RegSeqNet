@@ -102,8 +102,14 @@ parser.add_argument('--model', action='store', metavar='NAME', type=str, default
                          'if NAMESPACE is given model is supposed to be in [PATH]/results/[NAMESPACE]/ directory')
 parser.add_argument('--constant_class', action='store', metavar='CLASS', type=str, default=None,
                     help='If all sequences from the given dataset should belong to given class')
-parser.add_argument('--dropout', action='store', metavar='FLOAT', type=float, default=None,
-                    help='Dropout for training (available only for Custom network), default value is 0.5')
+parser.add_argument('--dropout-conv', action='store', metavar='FLOAT', type=float, default=None,
+                    help='Dropout of convolutional layers, default value is 0.2')
+parser.add_argument('--dropout-fc', action='store', metavar='FLOAT', type=float, default=None,
+                    help='Dropout of fully-connected layers, default value is 0.5')
+parser.add_argument('--weight-decay', action='store', metavar='FLOAT', type=float, default=0.0001,
+                    help='Weight decay, default value is 0.0001')
+parser.add_argument('--momentum', action='store', metavar='FLOAT', type=float, default=0.1,
+                    help='Momentum, default value is 0.1')
 parser.add_argument('--check_the_subset', action='store', metavar='FILE', type=str, nargs='+', default=None,
                     help='File with list of IDs of sequences that should be used for additional validation '
                          'during training')
@@ -144,7 +150,8 @@ network = NET_TYPES[network_name.lower()]
 optim_method = OPTIMIZERS[optimizer_name]
 lossfn = LOSS_FUNCTIONS[lossfn_name]
 lr = args.learning_rate
-weight_decay = 0.0001
+weight_decay = args.weight_decay
+momentum = args.momentum
 if args.no_adjust_lr:
     adjust_lr = False
 else:
@@ -285,11 +292,15 @@ if modelfile is not None:
     t0 = time()
     model.load_state_dict(torch.load(modelfile, map_location=torch.device(device)))
     logger.info('\nModel from {} loaded in {:.2f} s'.format(modelfile, time() - t0))
-if network_name.lower() == 'custom' and args.dropout is not None:
-    network.dropout = args.dropout
-    logger.info('\nDropout changed to {}'.format(args.dropout))
+if network_name.lower() != 'basset':
+    if args.dropout_fc is not None:
+        network.dropout_fc = args.dropout_fc
+        logger.info('\nDropout-fc changed to {}'.format(args.dropout_fc))
+    if args.dropout_conv is not None:
+        network.dropout_conv = args.dropout_conv
+        logger.info('\nDropout-conv changed to {}'.format(args.dropout_conv))
 network_params = model.params
-optimizer = optim_method(model.parameters(), lr=lr, weight_decay=weight_decay)
+optimizer = optim_method(model.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)
 loss_fn = lossfn()
 best_acc = 0.0
 # write parameters values into file
