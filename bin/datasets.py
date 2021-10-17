@@ -127,6 +127,7 @@ class SeqsDataset(Dataset):
             for line in file:
                 if line.startswith('>'):
                     header = line.strip('\n> ').split(' ')
+                    print(filename, '\n', header)
                     ch, midpoint, strand, t1, t2 = header[:5]
                     if len(header) > 5:
                         desc = ' '.join(header[5:])
