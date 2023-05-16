@@ -29,7 +29,6 @@ The simplest way to invoke is as follows:
 
 ```
  python3 train_new.py 
-
 ```
 
 It will then run an analysis based on the data in the *data/test_fasta* and the model from *data/alt1* directory.
@@ -37,8 +36,7 @@ It will then run an analysis based on the data in the *data/test_fasta* and the 
 If you this runs properly you can start your own analysis by changing some parameters. Let us start by looking at the options:
 
 ```
-
-bartek@nu:~/Dropbox/code/RegSeqNet$ python3 train_new.py --help
+$ python3 train_new.py --help
 usage: train_new.py [-h] [--model NAME] [-p DIR] [-x PREFIX] [-o DIR] [--seed NUMBER] [--optimizer NAME] [--loss_fn NAME] [--batch_size INT] [--num_workers INT] [--num_epochs INT]
                     [--acc_threshold FLOAT] [--learning_rate FLOAT] [--no_adjust_lr] [--seq_len INT] [--dropout-conv FLOAT] [--dropout-fc FLOAT] [--weight-decay FLOAT] [--momentum FLOAT]
 
@@ -76,11 +74,20 @@ If we just want to use a different fasta files, without modifying the training p
 python3 --path data/my_fasta --prefix fasta_file -output data/my_output --namespace MY-RUN-1
 ```
 
-for this we assume that you have 4 fasta files in the *data/my_fasta* folder and that the *data/my_output* folder is created.
+for this we assume that you have 4 fasta files in the *data/my_fasta* folder and that the *data/my_output* folder is created. 
 
 
 
 **Calculating the outputs for a full fasta file**
+
+If you just want to obtain the output of a network processing a fasta file, you can use the following command:
+
+```
+python3 process_fasta.py -m data/alt1/alt1_last.model -i data/test_fasta/test_pa.fa -o data/test_output/test_pa_out
+```
+
+You need to specify the network model, input fasta file and output text file name. It can take a while, but you will end up with a file with the names of all seuqnces and the values of all ouput neurons on them.
+
 
 
 **Calculating integrated gradients**
