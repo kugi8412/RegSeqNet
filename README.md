@@ -83,7 +83,8 @@ for this we assume that you have 4 fasta files in the *data/my_fasta* folder and
 If you just want to obtain the output of a network processing a fasta file, you can use the following command:
 
 ```
-python3 process_fasta.py -m data/alt1/alt1_last.model -i data/test_fasta/test_pa.fa -o data/test_output/test_pa_out
+python3 process_fasta.py -m data/alt1/alt1_last.model \\
+        -i data/test_fasta/test_pa.fa -o data/test_output/test_pa_out
 ```
 
 You need to specify the network model, input fasta file and output text file name. It can take a while, but you will end up with a file with the names of all seuqnces and the values of all ouput neurons on them.
