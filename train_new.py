@@ -19,7 +19,7 @@ import random
 from train_new_tools import *
 from new_parser import *
 
-namespace="ATAC-Seq"
+
 
 batch_size, num_workers, num_epochs, acc_threshold, seq_len = args.batch_size, args.num_workers, args.num_epochs, args.acc_threshold, args.seq_len
 
@@ -27,8 +27,8 @@ seed=args.seed
 #path, output, namespace, seed = parse_arguments(args, namesp=namespace)
 
 
-print(args)
-
+#print(args)
+namespace=args.namespace
 # set the random seed
 torch.manual_seed(seed)
 np.random.seed(seed)
