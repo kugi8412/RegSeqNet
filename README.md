@@ -43,29 +43,26 @@ usage: train_new.py [-h] [--model NAME] [-p DIR] [-x PREFIX] [-o DIR] [--seed NU
 Train network based on given data
 
 options:
- -h, --help            show this help message and exit
-  --model NAME          File with the model weights to load before training
-  --namespace NAME      The namespace for this run of training
-  -p DIR, --path DIR    Working directory.
-  -x PREFIX, --prefix PREFIX
-                        file_prefix.
-  -o DIR, --output DIR  Output directory, default: test_output
-  --seed NUMBER         Set random seed, default: 0
-  --optimizer NAME      optimization algorithm to use for training the network, default = RMSprop
-  --loss_fn NAME        loss function for training the network, default = CrossEntropyLoss
-  --batch_size INT      size of the batch, default: 64
-  --num_workers INT     how many subprocesses to use for data loading, default: 4
-  --num_epochs INT      maximum number of epochs to run, default: 300
-  --acc_threshold FLOAT
-                        threshold of the validation accuracy - if gained training process stops, default: 0.9
-  --learning_rate FLOAT
-                        initial learning rate, default: 0.01
-  --no_adjust_lr        no reduction of learning rate during training, default: False
-  --seq_len INT         Length of the input sequences to the network, default: 2000
-  --dropout-conv FLOAT  Dropout of convolutional layers, default value is 0.2
-  --dropout-fc FLOAT    Dropout of fully-connected layers, default value is 0.5
-  --weight-decay FLOAT  Weight decay, default value is 0.0001
-  --momentum FLOAT      Momentum, default value is 0.1
+  -h, --help                  Show this help message and exit
+  --model NAME                File with the model weights to load before training
+  --namespace NAME            The namespace for this run of training
+  -p DIR, --path DIR          Working directory.
+  -x PREFIX, --prefix PREFIX  File_prefix.
+  -o DIR, --output DIR        Output directory, default: test_output
+  --seed NUMBER               Set random seed, default: 0
+  --optimizer NAME            Optimization algorithm to use for training the network, default = RMSprop
+  --loss_fn NAME              Loss function for training the network, default = CrossEntropyLoss
+  --batch_size INT            Size of the batch, default: 64
+  --num_workers INT           How many subprocesses to use for data loading, default: 4
+  --num_epochs INT            Maximum number of epochs to run, default: 300
+  --acc_threshold FLOAT       Threshold of the validation accuracy - if gained training process stops, default: 0.9
+  --learning_rate FLOAT       Initial learning rate, default: 0.01
+  --no_adjust_lr              No reduction of learning rate during training, default: False
+  --seq_len INT               Length of the input sequences to the network, default: 2000
+  --dropout-conv FLOAT        Dropout of convolutional layers, default value is 0.2
+  --dropout-fc FLOAT          Dropout of fully-connected layers, default value is 0.5
+  --weight-decay FLOAT        Weight decay, default value is 0.0001
+  --momentum FLOAT            Momentum, default value is 0.1
 ```
 
 If we just want to use a different fasta files, without modifying the training params, you can simply run:
@@ -138,4 +135,5 @@ of the sequences, by default NUM=100
 
 As the output new directory with plots is created.
 
-
+### Bachelor's degree
+[Licencjat](https://github.com/kugi8412/RegSeqNet/tree/master/Licencjat) folder contains all scripts that were used during experiments with the **RegSeqNet** network. In order to explain the adaptation mechanisms of convolutional neural networks (CNN), 300 filters from the first convolutional layer and their Frobenius norm values were subjected to detailed analysis both before and after retraining on data from iAstrocytes cells (the original model was trained on sequences from gliomas). If you would like to learn more about the results, read [here](https://github.com/kugi8412/RegSeqNet/blob/master/Licencjat/Licencjat.pdf) (work in Polish).
